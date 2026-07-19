@@ -1,6 +1,14 @@
-# heron
+# tree-sitter-hale
 
 Tree-sitter grammar for [Hale](https://github.com/hale-lang/hale).
+
+> Extracted from `pond/heron` (2026-07-19) into its own repo so
+> ecosystem consumers — nvim-treesitter, Helix `languages.toml`,
+> Zed extensions, GitHub linguist — can pin it by URL the way
+> tree-sitter grammars are conventionally pinned. Full history
+> preserved; "heron" remains the project codename. CI parses the
+> Hale compiler's fixture corpus on every push, so grammar drift
+> against the language surface is a red build, not a surprise.
 
 The structural-parsing substrate Hale's dev tools build on:
 one grammar, multiple consumers. The grammar lives here as the

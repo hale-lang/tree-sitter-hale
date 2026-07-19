@@ -1,0 +1,51 @@
+name: corpus
+# The sync contract with the language: every .hl file in the Hale
+# compiler's acceptance corpus (fixtures + stdlib) must parse
+# without ERROR nodes. When a hale release adds surface, this goes
+# red here instead of drifting silently (the pre-extraction failure
+# mode: the grammar sat at v0.10 while the language moved on).
+on:
+  push:
+  pull_request:
+  schedule:
+    # Weekly against hale main — catches language-side additions
+    # without a push here.
+    - cron: "0 6 * * 1"
+
+jobs:
+  parse-corpus:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install tree-sitter CLI
+        run: npm install -g tree-sitter-cli@0.22
+      - name: Generate parser from grammar.js
+        # Regenerate rather than trusting the checked-in tables —
+        # this also fails if grammar.js and src/ have diverged.
+        run: tree-sitter generate
+      - name: Checkout hale (corpus source)
+        uses: actions/checkout@v4
+        with:
+          repository: hale-lang/hale
+          path: hale
+      - name: Parse the corpus
+        run: |
+          set -e
+          files=$(find \
+            hale/crates/hale-codegen/tests/fixtures/examples \
+            hale/crates/hale-codegen/runtime/stdlib \
+            -name '*.hl' | sort)
+          count=$(echo "$files" | wc -l)
+          echo "parsing $count corpus files"
+          fail=0
+          for f in $files; do
+            if ! tree-sitter parse --quiet "$f" > /dev/null 2>&1; then
+              echo "PARSE ERROR: $f"
+              tree-sitter parse "$f" 2>&1 | grep -m3 "ERROR\|MISSING" || true
+              fail=1
+            fi
+          done
+          exit $fail
