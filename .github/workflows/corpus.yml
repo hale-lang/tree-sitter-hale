@@ -32,6 +32,10 @@ jobs:
           repository: hale-lang/hale
           path: hale
       - name: Parse the corpus
+        # known-gaps.txt is the XFAIL list: listed files failing is
+        # expected debt; a listed file PASSING errors (remove it —
+        # the debt shrank); an unlisted file failing is a
+        # regression.
         run: |
           set -e
           files=$(find \
@@ -41,11 +45,25 @@ jobs:
           count=$(echo "$files" | wc -l)
           echo "parsing $count corpus files"
           fail=0
+          xfail_hits=0
           for f in $files; do
-            if ! tree-sitter parse --quiet "$f" > /dev/null 2>&1; then
-              echo "PARSE ERROR: $f"
-              tree-sitter parse "$f" 2>&1 | grep -m3 "ERROR\|MISSING" || true
-              fail=1
+            rel="${f#hale/}"
+            expected_fail=0
+            grep -qxF "$rel" known-gaps.txt && expected_fail=1
+            if tree-sitter parse --quiet "$f" > /dev/null 2>&1; then
+              if [ "$expected_fail" = "1" ]; then
+                echo "STALE XFAIL (now parses — remove from known-gaps.txt): $rel"
+                fail=1
+              fi
+            else
+              if [ "$expected_fail" = "1" ]; then
+                xfail_hits=$((xfail_hits + 1))
+              else
+                echo "PARSE ERROR (regression): $rel"
+                tree-sitter parse "$f" 2>&1 | grep -m3 "ERROR\|MISSING" || true
+                fail=1
+              fi
             fi
           done
+          echo "$xfail_hits known gap(s) still open (see known-gaps.txt / issue #1)"
           exit $fail

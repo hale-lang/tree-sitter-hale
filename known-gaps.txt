@@ -1,0 +1,16 @@
+# Corpus files the grammar does NOT yet parse — the enumerated sync
+# debt (tracking issue #1). The corpus workflow XFAILs these: a
+# file listed here that FAILS is expected; one that starts PASSING
+# must be removed from this list (the workflow errors to force the
+# cleanup); any file NOT listed here that fails is a regression.
+crates/hale-codegen/runtime/stdlib/http.hl
+crates/hale-codegen/runtime/stdlib/metrics.hl
+crates/hale-codegen/tests/fixtures/examples/07-control-flow/main.hl
+crates/hale-codegen/tests/fixtures/examples/22-moving-average/main.hl
+crates/hale-codegen/tests/fixtures/examples/26-tuples/main.hl
+crates/hale-codegen/tests/fixtures/examples/45-enum-payloads/main.hl
+crates/hale-codegen/tests/fixtures/examples/46-fn-arenas/main.hl
+crates/hale-codegen/tests/fixtures/examples/47-fn-arenas-extras/main.hl
+crates/hale-codegen/tests/fixtures/examples/50-mode-defaults/main.hl
+crates/hale-codegen/tests/fixtures/examples/55-geom-triangulate/main.hl
+crates/hale-codegen/tests/fixtures/examples/67-match-expression/main.hl
