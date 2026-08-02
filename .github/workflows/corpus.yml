@@ -40,7 +40,7 @@ jobs:
           set -e
           files=$(find \
             hale/crates/hale-codegen/tests/fixtures/examples \
-            hale/crates/hale-codegen/runtime/stdlib \
+            hale/crates/hale-stdlib/hl \
             -name '*.hl' | sort)
           count=$(echo "$files" | wc -l)
           echo "parsing $count corpus files"
