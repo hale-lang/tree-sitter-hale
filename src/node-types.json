@@ -1194,6 +1194,32 @@
     "fields": {}
   },
   {
+    "type": "bounded_clause",
+    "named": true,
+    "fields": {
+      "capacity": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "integer_literal",
+            "named": true
+          }
+        ]
+      },
+      "policy": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "break_stmt",
     "named": true,
     "fields": {}
@@ -1382,6 +1408,16 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "bounded_clause",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -2306,6 +2342,68 @@
     }
   },
   {
+    "type": "deterministic_annotation",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "effect_class_set",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "effect_decl",
+    "named": true,
+    "fields": {
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "effects_annotation",
+    "named": true,
+    "fields": {
+      "clause": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "effect_class_set",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "enum_variant",
     "named": true,
     "fields": {
@@ -3078,11 +3176,27 @@
           "named": true
         },
         {
+          "type": "deterministic_annotation",
+          "named": true
+        },
+        {
+          "type": "effects_annotation",
+          "named": true
+        },
+        {
           "type": "export_annotation",
           "named": true
         },
         {
           "type": "hot_annotation",
+          "named": true
+        },
+        {
+          "type": "no_effect_annotation",
+          "named": true
+        },
+        {
+          "type": "no_panic_annotation",
           "named": true
         },
         {
@@ -4836,6 +4950,10 @@
           "named": true
         },
         {
+          "type": "effects_annotation",
+          "named": true
+        },
+        {
           "type": "export_annotation",
           "named": true
         },
@@ -4876,7 +4994,15 @@
           "named": true
         },
         {
+          "type": "phase_effects_annotation",
+          "named": true
+        },
+        {
           "type": "placement_block",
+          "named": true
+        },
+        {
+          "type": "supervised_annotation",
           "named": true
         },
         {
@@ -5511,6 +5637,10 @@
           "named": true
         },
         {
+          "type": "effect_decl",
+          "named": true
+        },
+        {
           "type": "ffi_function_decl",
           "named": true
         },
@@ -5570,6 +5700,16 @@
   },
   {
     "type": "nil_literal",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "no_effect_annotation",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "no_panic_annotation",
     "named": true,
     "fields": {}
   },
@@ -6610,6 +6750,32 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "phase_effects_annotation",
+    "named": true,
+    "fields": {
+      "clause": {
+        "multiple": true,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "effect_class_set",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -8198,6 +8364,10 @@
           "named": true
         },
         {
+          "type": "effect_decl",
+          "named": true
+        },
+        {
           "type": "ffi_function_decl",
           "named": true
         },
@@ -8702,6 +8872,11 @@
     }
   },
   {
+    "type": "supervised_annotation",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "terminate_stmt",
     "named": true,
     "fields": {}
@@ -8746,6 +8921,16 @@
     "type": "topic_field",
     "named": true,
     "fields": {
+      "on_full": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
       "payload_type": {
         "multiple": true,
         "required": false,
@@ -8802,6 +8987,16 @@
           }
         ]
       }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "bounded_clause",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -9811,6 +10006,10 @@
     "extra": true
   },
   {
+    "type": "bounded",
+    "named": false
+  },
+  {
     "type": "break",
     "named": false
   },
@@ -9907,6 +10106,10 @@
     "named": true
   },
   {
+    "type": "deterministic",
+    "named": false
+  },
+  {
     "type": "discard_disposition",
     "named": true
   },
@@ -9934,6 +10137,14 @@
   {
     "type": "duration_literal",
     "named": true
+  },
+  {
+    "type": "effect",
+    "named": false
+  },
+  {
+    "type": "effects",
+    "named": false
   },
   {
     "type": "else",
@@ -10117,6 +10328,10 @@
     "named": false
   },
   {
+    "type": "no_panic",
+    "named": false
+  },
+  {
     "type": "node",
     "named": false
   },
@@ -10126,6 +10341,10 @@
   },
   {
     "type": "on_failure",
+    "named": false
+  },
+  {
+    "type": "on_full",
     "named": false
   },
   {
@@ -10154,6 +10373,10 @@
   },
   {
     "type": "perspective",
+    "named": false
+  },
+  {
+    "type": "phase_effects",
     "named": false
   },
   {
@@ -10306,6 +10529,10 @@
   },
   {
     "type": "summary_only",
+    "named": false
+  },
+  {
+    "type": "supervised",
     "named": false
   },
   {

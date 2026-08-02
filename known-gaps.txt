@@ -3,8 +3,8 @@
 # file listed here that FAILS is expected; one that starts PASSING
 # must be removed from this list (the workflow errors to force the
 # cleanup); any file NOT listed here that fails is a regression.
-crates/hale-codegen/runtime/stdlib/http.hl
-crates/hale-codegen/runtime/stdlib/metrics.hl
+crates/hale-stdlib/hl/http.hl
+crates/hale-stdlib/hl/metrics.hl
 crates/hale-codegen/tests/fixtures/examples/07-control-flow/main.hl
 crates/hale-codegen/tests/fixtures/examples/22-moving-average/main.hl
 crates/hale-codegen/tests/fixtures/examples/26-tuples/main.hl

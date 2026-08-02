@@ -104,6 +104,18 @@ module.exports = grammar({
       $.topic_decl,
       $.ring_layout_decl,
       $.module_decl,
+      $.effect_decl,
+    ),
+
+    // #345: `effect NAME;` declares a user effect class that
+    // `@effects(is: {…})` then names. `effect` is CONTEXTUAL in the
+    // hale parser — it stays usable as an ordinary identifier — so
+    // this rule must not promote it to a keyword token. The `token`
+    // wrapper is deliberately absent for that reason.
+    effect_decl: $ => seq(
+      'effect',
+      field('name', $.identifier),
+      ';',
     ),
 
     module_decl: $ => seq(
@@ -144,6 +156,21 @@ module.exports = grammar({
     topic_field: $ => choice(
       seq('payload', ':', field('payload_type', $._type_expr), ';'),
       seq('subject', ':', field('subject', $.string_literal), ';'),
+      // #255 backpressure: a topic may declare a queue bound and the
+      // policy applied when it is full.
+      seq($.bounded_clause, ';'),
+      seq('on_full', ':', field('on_full', $.identifier), ';'),
+    ),
+
+    // `bounded(N)` on a topic; `bounded(N, <policy>)` on a subscribe.
+    // Policy names are idents rather than a keyword list — the
+    // compiler owns which are legal.
+    bounded_clause: $ => seq(
+      'bounded',
+      '(',
+      field('capacity', $.integer_literal),
+      optional(seq(',', field('policy', $.identifier))),
+      ')',
     ),
 
     // shm-ring-interop Proposal B: `ring_layout Name { ... }` declares
@@ -242,7 +269,26 @@ module.exports = grammar({
       $.form_annotation,
       $.locality_annotation,
       $.export_annotation,
+      // Effect contracts that sit on a LOCUS rather than a fn:
+      // `@effects(depends: …)` (#330) is locus-level by design —
+      // dependence enters through subscriptions, which are declared
+      // per-locus — and `@phase_effects` / `@supervised` have always
+      // been locus-level.
+      $.effects_annotation,
+      $.phase_effects_annotation,
+      $.supervised_annotation,
     ),
+
+    phase_effects_annotation: $ => seq(
+      '@',
+      'phase_effects',
+      '(',
+      $._effects_clause,
+      repeat(seq(',', $._effects_clause)),
+      ')',
+    ),
+
+    supervised_annotation: $ => seq('@', 'supervised'),
 
     // `@export locus` (WASM #152/#153): the persistent singleton
     // "app" of a wasm program — instantiated once, never
@@ -636,6 +682,7 @@ module.exports = grammar({
       'as',
       field('handler', $.identifier),
       optional(seq('of', 'type', field('type', $._type_expr))),
+      optional($.bounded_clause),
       ';',
     ),
 
@@ -972,7 +1019,55 @@ module.exports = grammar({
       $.unbounded_annotation,
       $.budget_annotation,
       $.hot_annotation,
+      $.effects_annotation,
+      $.no_effect_annotation,
+      $.no_panic_annotation,
+      $.deterministic_annotation,
     )),
+
+    // #265 / #345: `@effects(<clause>: {A, B})`. Clause names are
+    // bare idents rather than a fixed choice — `none` / `publish` /
+    // `causes` / `depends` / `is` today, and the compiler owns which
+    // are legal. Class names include user-declared ones, so the set
+    // members cannot be an enumerated keyword list either.
+    effects_annotation: $ => seq(
+      '@',
+      'effects',
+      '(',
+      $._effects_clause,
+      repeat(seq(',', $._effects_clause)),
+      ')',
+    ),
+
+    _effects_clause: $ => seq(
+      field('clause', $.identifier),
+      ':',
+      $.effect_class_set,
+    ),
+
+    effect_class_set: $ => seq(
+      '{',
+      optional(seq(
+        $.identifier,
+        repeat(seq(',', $.identifier)),
+      )),
+      '}',
+    ),
+
+    // `@no_syscall` / `@no_block` / `@no_ffi` / `@no_publish` /
+    // `@no_spawn` / `@no_recursion` — parse-time sugar for the
+    // `@effects(none: …)` forms.
+    no_effect_annotation: $ => seq(
+      '@',
+      token(seq('no_', choice(
+        'syscall', 'block', 'ffi', 'publish', 'spawn', 'recursion',
+      ))),
+    ),
+
+    // A different analysis (disposition coverage), not effect sugar.
+    no_panic_annotation: $ => seq('@', 'no_panic'),
+
+    deterministic_annotation: $ => seq('@', 'deterministic'),
 
     unbounded_annotation: $ => seq('@', 'unbounded'),
 
