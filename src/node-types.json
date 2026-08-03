@@ -2365,6 +2365,16 @@
     "type": "effect_decl",
     "named": true,
     "fields": {
+      "definition": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "effect_class_set",
+            "named": true
+          }
+        ]
+      },
       "name": {
         "multiple": false,
         "required": true,

@@ -115,6 +115,12 @@ module.exports = grammar({
     effect_decl: $ => seq(
       'effect',
       field('name', $.identifier),
+      // #354: an optional DEFINITION. `effect io = { syscall, block };`
+      // makes `io`'s mask the union of its members rather than a bit of
+      // its own, so forbidding `io` forbids both, and anything reaching
+      // a syscall carries `io`. Members may be built-ins or other
+      // declared classes; the compiler owns which combinations resolve.
+      optional(seq('=', field('definition', $.effect_class_set))),
       ';',
     ),
 
