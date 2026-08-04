@@ -105,6 +105,68 @@ module.exports = grammar({
       $.ring_layout_decl,
       $.module_decl,
       $.effect_decl,
+      $.target_decl,
+      $.group_decl,
+      $.domain_decl,
+    ),
+
+    // FUv0.8.2 #7: `target <name> { cap.path, ... }` — names a
+    // substrate + its capability profile. Contextual, like `topic`.
+    // (Was a known gap; closed in the #382 sync.)
+    target_decl: $ => seq(
+      'target',
+      field('name', $.identifier),
+      '{',
+      optional(seq(
+        $.capability_path,
+        repeat(seq(',', $.capability_path)),
+        optional(','),
+      )),
+      '}',
+    ),
+
+    capability_path: $ => seq(
+      $.identifier,
+      repeat(seq('.', $.identifier)),
+    ),
+
+    // GH #382: `group NAME = { member, ... } [may_be_empty];` —
+    // declared claim vocabulary. `group` / `may_be_empty` are
+    // CONTEXTUAL in the hale parser (no token() wrapper, same
+    // rationale as `effect`).
+    group_decl: $ => seq(
+      'group',
+      field('name', $.identifier),
+      '=',
+      '{',
+      optional(seq(
+        $.group_member,
+        repeat(seq(',', $.group_member)),
+        optional(','),
+      )),
+      '}',
+      optional('may_be_empty'),
+      ';',
+    ),
+
+    group_member: $ => seq(
+      $.identifier,
+      repeat(seq('::', $.identifier)),
+      optional(seq('::', '*')),
+    ),
+
+    // GH #382 phase 3: `domain wing = { delta, gamma };` — a closed
+    // index domain for effect families.
+    domain_decl: $ => seq(
+      'domain',
+      field('name', $.identifier),
+      '=',
+      '{',
+      $.identifier,
+      repeat(seq(',', $.identifier)),
+      optional(','),
+      '}',
+      ';',
     ),
 
     // #345: `effect NAME;` declares a user effect class that
@@ -115,6 +177,9 @@ module.exports = grammar({
     effect_decl: $ => seq(
       'effect',
       field('name', $.identifier),
+      // GH #382 phase 3: `effect knowledge(wing);` — an indexed
+      // family over a source-declared domain.
+      optional(seq('(', field('domain', $.identifier), ')')),
       // #354: an optional DEFINITION. `effect io = { syscall, block };`
       // makes `io`'s mask the union of its members rather than a bit of
       // its own, so forbidding `io` forbids both, and anything reaching
@@ -405,7 +470,127 @@ module.exports = grammar({
       $.bindings_block,
       $.placement_block,
       $.topology_block,
+      $.claims_block,
       $.birth_check_decl,
+    ),
+
+    // GH #382: the `claims { }` main-locus member — named
+    // bundle-level sentences. The typechecker enforces main-only;
+    // all introducers are contextual.
+    claims_block: $ => seq(
+      'claims',
+      '{',
+      repeat($.claim_entry),
+      '}',
+    ),
+
+    claim_entry: $ => seq(
+      field('name', $.identifier),
+      ':',
+      field('form', $._claim_form),
+      ';',
+    ),
+
+    _claim_form: $ => choice(
+      $.forbid_form,
+      $.only_edges_form,
+      $.bound_form,
+      $.require_form,
+      $.cover_form,
+      $.count_form,
+    ),
+
+    forbid_form: $ => seq(
+      'forbid',
+      'reaches',
+      '(',
+      $.claim_set,
+      ',',
+      $.claim_set,
+      ')',
+      repeat(choice(
+        seq('via', '{', choice('calls', 'bus'),
+            repeat(seq(',', choice('calls', 'bus'))),
+            optional(','), '}'),
+        seq('during', $.identifier),
+        seq('avoiding', $.identifier),
+      )),
+    ),
+
+    only_edges_form: $ => seq(
+      'only',
+      'edges',
+      field('source', $.identifier),
+      '->',
+      field('target', $.identifier),
+      '{',
+      repeat(seq(choice('publish', 'subscribe'), $.topic_ref, ';')),
+      '}',
+    ),
+
+    bound_form: $ => seq(
+      'bound',
+      $.effect_class_ref,
+      '<=',
+      $.integer_literal,
+      'on',
+      'paths',
+      'from',
+      field('source', $.identifier),
+    ),
+
+    require_form: $ => seq(
+      'require',
+      choice('subscribes', 'publishes'),
+      '(',
+      'some',
+      field('group', $.identifier),
+      ',',
+      'topic',
+      $.topic_ref,
+      ')',
+    ),
+
+    cover_form: $ => seq(
+      'cover',
+      'topic',
+      'in',
+      'seed',
+      '(',
+      field('alias', $.identifier),
+      ')',
+      ':',
+      'subscribed_by',
+      '(',
+      'some',
+      field('group', $.identifier),
+      ')',
+    ),
+
+    count_form: $ => seq(
+      'count',
+      choice('publishers', 'subscribers'),
+      '(',
+      'topic',
+      $.topic_ref,
+      ')',
+      choice('==', '<=', '>='),
+      $.integer_literal,
+    ),
+
+    claim_set: $ => choice(
+      $.identifier,
+      seq('effects', '(', $.effect_class_ref, ')'),
+    ),
+
+    topic_ref: $ => seq(
+      $.identifier,
+      repeat(seq('::', $.identifier)),
+    ),
+
+    effect_class_ref: $ => seq(
+      $.identifier,
+      optional(seq('(', choice($.identifier, '*'), ')')),
     ),
 
     // F.31 (2026-05-23): `placement { field: <spec>; ... }`
