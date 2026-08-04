@@ -34,6 +34,36 @@
   "as"
   "main"
   "export"
+  "target"
+  "group"
+  "domain"
+  "effect"
+] @keyword
+
+; GH #382 claims surface
+[
+  "claims"
+  "forbid"
+  "reaches"
+  "via"
+  "during"
+  "avoiding"
+  "edges"
+  "bound"
+  "require"
+  "cover"
+  "count"
+  "seed"
+  "effects"
+  "subscribes"
+  "publishes"
+  "publishers"
+  "subscribers"
+  "subscribed_by"
+  "some"
+  "paths"
+  "from"
+  "may_be_empty"
 ] @keyword
 
 ; Locus annotation keywords
