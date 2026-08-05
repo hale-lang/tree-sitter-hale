@@ -5928,6 +5928,10 @@
       "required": false,
       "types": [
         {
+          "type": "claims_block",
+          "named": true
+        },
+        {
           "type": "const_decl",
           "named": true
         },
@@ -8728,6 +8732,10 @@
       "multiple": true,
       "required": false,
       "types": [
+        {
+          "type": "claims_block",
+          "named": true
+        },
         {
           "type": "const_decl",
           "named": true

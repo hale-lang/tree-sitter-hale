@@ -108,6 +108,11 @@ module.exports = grammar({
       $.target_decl,
       $.group_decl,
       $.domain_decl,
+      // #392 thread 2: a TOP-LEVEL claims block — the library
+      // tier. A seed swears about itself and its own boundary;
+      // the block travels with the import. The typechecker
+      // rejects the form in a seed that declares `main locus`.
+      $.claims_block,
     ),
 
     // FUv0.8.2 #7: `target <name> { cap.path, ... }` — names a
