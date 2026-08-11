@@ -113,6 +113,9 @@ module.exports = grammar({
       // the block travels with the import. The typechecker
       // rejects the form in a seed that declares `main locus`.
       $.claims_block,
+      // GH #409: a named, composable claimset, declared outside
+      // any main and adopted by entrypoints.
+      $.constitution_decl,
     ),
 
     // FUv0.8.2 #7: `target <name> { cap.path, ... }` — names a
@@ -172,6 +175,27 @@ module.exports = grammar({
       optional(','),
       '}',
       ';',
+    ),
+
+    // GH #409: `constitution NAME [extends A, B] { … }` — a named
+    // claimset declared outside any main, composed by UNION and
+    // adopted by an entrypoint (`adopt NAME;` inside its `claims`
+    // block). The body is the same claim grammar as `claims { }`
+    // MINUS `adopt`: claimsets compose with `extends`, and adoption
+    // belongs to the entrypoint that closes the world. `constitution`
+    // / `extends` are CONTEXTUAL in the hale parser, so no `token`
+    // wrapper here either.
+    constitution_decl: $ => seq(
+      'constitution',
+      field('name', $.identifier),
+      optional(seq(
+        'extends',
+        field('base', $.identifier),
+        repeat(seq(',', field('base', $.identifier))),
+      )),
+      '{',
+      repeat($.claim_entry),
+      '}',
     ),
 
     // #345: `effect NAME;` declares a user effect class that
@@ -353,7 +377,23 @@ module.exports = grammar({
       $.effects_annotation,
       $.phase_effects_annotation,
       $.supervised_annotation,
+      $.sealed_annotation,
+      $.bounded_annotation,
     ),
+
+    // GH #436: `@sealed locus` confines the locus's state — its
+    // `params` are readable only from inside its own methods. Others
+    // may still CALL it; they may not read it. Only `params` are
+    // confined (not capacity slots, not methods), and param
+    // initialization is deliberately unrestricted — the parent
+    // already holds what it passes.
+    sealed_annotation: $ => seq('@', 'sealed'),
+
+    // GH #18 item 1: `@bounded locus` opts the locus into the
+    // memory-bound proof — its bodies are checked for unbounded
+    // allocations on every `hale check`. A bare flag, like
+    // `@unbounded` on a fn (the carve-out in the other direction).
+    bounded_annotation: $ => seq('@', 'bounded'),
 
     phase_effects_annotation: $ => seq(
       '@',
@@ -485,7 +525,7 @@ module.exports = grammar({
     claims_block: $ => seq(
       'claims',
       '{',
-      repeat($.claim_entry),
+      repeat(choice($.claim_entry, $.adopt_entry)),
       '}',
     ),
 
@@ -493,6 +533,17 @@ module.exports = grammar({
       field('name', $.identifier),
       ':',
       field('form', $._claim_form),
+      ';',
+    ),
+
+    // GH #409: `adopt Core;` — pull in a named constitution. Legal
+    // only in a MAIN-LOCUS claims block (adoption fixes the world the
+    // clauses are evaluated against, and a library seed closes none);
+    // the typechecker enforces that, and rejects it outright inside a
+    // `constitution` body.
+    adopt_entry: $ => seq(
+      'adopt',
+      field('constitution', $.identifier),
       ';',
     ),
 
@@ -544,16 +595,43 @@ module.exports = grammar({
       field('source', $.identifier),
     ),
 
-    require_form: $ => seq(
-      'require',
-      choice('subscribes', 'publishes'),
-      '(',
-      'some',
-      field('group', $.identifier),
-      ',',
-      'topic',
-      $.topic_ref,
-      ')',
+    // The endpoint forms are EXISTENTIAL over a group (`some`); the
+    // GH #436 forms are UNIVERSAL over the closed world (`all`) —
+    // `require sealed(all G)` (every member of the group is declared
+    // `@sealed`) and `require attributed(all syscall)` (every user fn
+    // directly performing an operation of the named BUILT-IN class
+    // carries a user-declared class).
+    require_form: $ => choice(
+      seq(
+        'require',
+        choice('subscribes', 'publishes'),
+        '(',
+        'some',
+        field('group', $.identifier),
+        ',',
+        'topic',
+        $.topic_ref,
+        ')',
+      ),
+      seq(
+        'require',
+        'sealed',
+        '(',
+        'all',
+        field('group', $.identifier),
+        ')',
+      ),
+      seq(
+        'require',
+        'attributed',
+        '(',
+        'all',
+        // `publish` is a built-in effect class AND a hard keyword, so
+        // it can't come through `identifier` — alias the keyword back
+        // to an identifier node so consumers see one shape.
+        field('class', choice($.identifier, alias('publish', $.identifier))),
+        ')',
+      ),
     ),
 
     cover_form: $ => seq(

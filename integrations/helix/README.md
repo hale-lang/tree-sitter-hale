@@ -23,7 +23,7 @@ auto-format = false
 
 [[grammar]]
 name = "hale"
-source = { git = "https://github.com/hale-lang/pond", subpath = "heron", rev = "main" }
+source = { git = "https://github.com/hale-lang/tree-sitter-hale", rev = "main" }
 ```
 
 Then build the grammar:
@@ -43,7 +43,7 @@ For a stable setup, replace `rev = "main"` with a specific
 commit SHA you've tested against:
 
 ```toml
-source = { git = "https://github.com/hale-lang/pond", subpath = "heron", rev = "<sha>" }
+source = { git = "https://github.com/hale-lang/tree-sitter-hale", rev = "<sha>" }
 ```
 
 This avoids surprise grammar updates on `hx --grammar fetch`.
@@ -56,7 +56,7 @@ at your local checkout:
 ```toml
 [[grammar]]
 name = "hale"
-source = { path = "/absolute/path/to/hale-lang/pond/heron" }
+source = { path = "/absolute/path/to/hale-lang/tree-sitter-hale" }
 ```
 
 This skips git fetch and lets you iterate on `grammar.js` +
@@ -123,7 +123,8 @@ declared?" across a project tree.
 
 The same `parser.c` + `queries/highlights.scm` plug into
 every tree-sitter-supporting editor. Patterns vary per
-editor; the upstream pond/heron lib documents the C-ABI side.
+editor; this repo's `heron.hl` + `glue.c` document the
+C-ABI side.
 
 - **Neovim** — `nvim-treesitter` plugin; add hale to its
   parser list pointing at this repo.

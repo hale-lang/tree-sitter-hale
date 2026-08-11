@@ -20,4 +20,4 @@ auto-format = false
 
 [[grammar]]
 name = "hale"
-source = { git = "https://github.com/hale-lang/pond", subpath = "heron", rev = "main" }
+source = { git = "https://github.com/hale-lang/tree-sitter-hale", rev = "main" }

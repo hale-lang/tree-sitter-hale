@@ -487,3 +487,119 @@ claims {
         (identifier)
         (topic_ref
           (identifier))))))
+
+==================
+Constitution declaration + extends + adopt (#409)
+==================
+
+constitution Core {
+    tenant_iso: forbid reaches(billing, research);
+}
+
+constitution Dev extends Core, Base {
+    quiet: count subscribers(topic Settled) == 0;
+}
+
+main locus App {
+    claims {
+        adopt Dev;
+        local_rule: require publishes(some billing, topic Settled);
+    }
+}
+
+---
+
+(source_file
+  (constitution_decl
+    (identifier)
+    (claim_entry
+      (identifier)
+      (forbid_form
+        (claim_set
+          (identifier))
+        (claim_set
+          (identifier)))))
+  (constitution_decl
+    (identifier)
+    (identifier)
+    (identifier)
+    (claim_entry
+      (identifier)
+      (count_form
+        (topic_ref
+          (identifier))
+        (integer_literal))))
+  (locus_decl
+    (identifier)
+    (claims_block
+      (adopt_entry
+        (identifier))
+      (claim_entry
+        (identifier)
+        (require_form
+          (identifier)
+          (topic_ref
+            (identifier)))))))
+
+==================
+@sealed / @bounded locus + require sealed/attributed (#436)
+==================
+
+@sealed locus Signer {
+    params { key: Int = 7; }
+}
+
+@bounded locus Meter {
+    params { n: Int = 0; }
+}
+
+main locus App {
+    claims {
+        confined: require sealed(all signers);
+        named: require attributed(all syscall);
+        edges: require attributed(all publish);
+        spend: bound secret_use <= 2 on paths from Gateway;
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    (sealed_annotation)
+    (identifier)
+    (params_block
+      (param_decl
+        (identifier)
+        (primitive_type)
+        (integer_literal))))
+  (locus_decl
+    (bounded_annotation)
+    (identifier)
+    (params_block
+      (param_decl
+        (identifier)
+        (primitive_type)
+        (integer_literal))))
+  (locus_decl
+    (identifier)
+    (claims_block
+      (claim_entry
+        (identifier)
+        (require_form
+          (identifier)))
+      (claim_entry
+        (identifier)
+        (require_form
+          (identifier)))
+      (claim_entry
+        (identifier)
+        (require_form
+          (identifier)))
+      (claim_entry
+        (identifier)
+        (bound_form
+          (effect_class_ref
+            (identifier))
+          (integer_literal)
+          (identifier))))))
