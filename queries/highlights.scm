@@ -38,11 +38,16 @@
   "group"
   "domain"
   "effect"
+  ; GH #409: a named, composable claimset.
+  "constitution"
+  "extends"
 ] @keyword
 
 ; GH #382 claims surface
 [
   "claims"
+  ; GH #409: `adopt Core;` inside a main's claims block.
+  "adopt"
   "forbid"
   "reaches"
   "via"
@@ -65,6 +70,16 @@
   "from"
   "may_be_empty"
 ] @keyword
+
+; GH #436: the universal claim forms. `sealed` is scoped to
+; `require_form` rather than listed flat — the same word is the
+; `@sealed` decorator, which reads as an attribute, not a keyword.
+(require_form
+  "sealed" @keyword)
+(require_form
+  "attributed" @keyword)
+(require_form
+  "all" @keyword)
 
 ; Locus annotation keywords
 [
@@ -250,6 +265,39 @@
   "@" @attribute
   "ffi" @attribute)
 
+; Bare `@`-flags on a locus. `@sealed` (GH #436) confines the
+; locus's params; `@bounded` (GH #18) opts it into the memory-bound
+; proof; `@supervised` (GH #265) asserts failure-policy coverage.
+(sealed_annotation
+  "@" @attribute
+  "sealed" @attribute)
+
+(bounded_annotation
+  "@" @attribute
+  "bounded" @attribute)
+
+(supervised_annotation
+  "@" @attribute
+  "supervised" @attribute)
+
+; Bare `@`-flags on a fn — the memory-bound carve-out and the
+; effect assertions that take no arglist.
+(unbounded_annotation
+  "@" @attribute
+  "unbounded" @attribute)
+
+(hot_annotation
+  "@" @attribute
+  "hot" @attribute)
+
+(no_panic_annotation
+  "@" @attribute
+  "no_panic" @attribute)
+
+(deterministic_annotation
+  "@" @attribute
+  "deterministic" @attribute)
+
 ; F.32-2 v0.2 (2026-05-25): @locality(L1|L2|L3|any). Tier
 ; names get constant.builtin so they read as named values
 ; rather than identifiers.
@@ -270,6 +318,13 @@
 (interface_decl name: (identifier) @type)
 (perspective_decl name: (identifier) @type)
 (topic_decl name: (identifier) @type)
+
+; GH #409: a constitution names a claimset. Its own name, the
+; bases it extends, and the name an entrypoint adopts all read
+; as the same kind of thing.
+(constitution_decl name: (identifier) @type)
+(constitution_decl base: (identifier) @type)
+(adopt_entry constitution: (identifier) @type)
 
 ; Generic params
 (generic_param name: (identifier) @type)

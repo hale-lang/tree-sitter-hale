@@ -3,6 +3,49 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-08-11 — constitutions (#409) + the secrets surface (#436)
+
+Synced against hale `main` past the #392 library-tier commit this
+grammar was last cut at. The corpus check was red on three files
+(`examples/constitutions.hl`, `examples/secrets-sealed-handler.hl`,
+`stdlib/hl/secret.hl`); all three parse now. Added:
+
+- **Constitutions (#409):** `constitution NAME [extends A, B] { … }`
+  as a top-level decl, and `adopt NAME;` as a `claims { }` entry.
+  A constitution body is the claim grammar minus `adopt` — the
+  compiler rejects `adopt` inside one, since claimsets compose with
+  `extends` and adoption belongs to the entrypoint that closes the
+  world. The grammar models that split directly (`constitution_decl`
+  repeats `claim_entry`; only `claims_block` also takes
+  `adopt_entry`), so the shape is a parse error here too.
+- **Secrets (#436):** the `@sealed locus` decorator, plus the two
+  universal claim forms `require sealed(all G)` and
+  `require attributed(all C)`. `require attributed(all publish)` is
+  spelled with a hard keyword where an effect-class name goes, so
+  that arm aliases `publish` back to an `identifier` node — one
+  shape for consumers, matching how the hale parser special-cases it.
+- **`@bounded locus` (GH #18)** — in `spec/grammar.ebnf` and accepted
+  by the compiler since the memory-bound proof landed, but never
+  modeled here; `@bounded locus Foo {}` was a hard parse error. Found
+  while checking decorator coverage against the hale parser, not by
+  the corpus (no fixture uses it).
+- `highlights.scm`: `constitution` / `extends` / `adopt` as keywords;
+  `sealed` / `attributed` / `all` scoped to `require_form` so the
+  `@sealed` decorator still reads as an attribute; constitution names,
+  bases, and adopt targets as `@type`. Also covered the bare `@`-flag
+  decorators that had no highlight at all (`@supervised`,
+  `@unbounded`, `@hot`, `@no_panic`, `@deterministic`).
+- `tags.scm`: `constitution_decl` as `@definition.type`.
+
+Validated: 35/35 corpus tests (2 new); 121/121 hale corpus files
+behave as the XFAIL list says — the 11 known gaps still fail, nothing
+else does, and no listed file has started passing.
+
+Also repointed the Helix integration + `package.json` at
+`hale-lang/tree-sitter-hale`; both still pinned
+`hale-lang/pond` `subpath = "heron"`, which is where the grammar
+lived before extraction. Hale's own docs name this repo now.
+
 ## 2026-07-15 — v0.10 language-surface sync
 
 Brought the grammar current with the June–July additions it had

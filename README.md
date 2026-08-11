@@ -45,10 +45,13 @@ one tool: it's the shared substrate.
 ## Status
 
 v0 grammar mature: covers all of `spec/grammar.ebnf` as
-exercised by a real editor corpus + hale stdlib (19/19 stdlib files
-parse cleanly, 29/29 corpus tests pass — re-verified 2026-06-12
-with tree-sitter 0.26.9; `tree-sitter generate` leaves the
-checked-in `src/parser.c` unchanged). Hale @ffi wrapper
+exercised by a real editor corpus + hale stdlib (35/35 corpus
+tests pass; every file in the hale acceptance corpus parses
+except the 11 enumerated in
+[`known-gaps.txt`](./known-gaps.txt) — re-verified 2026-08-11
+with tree-sitter 0.26.9 against hale `main`, current through
+constitutions (#409) and the secrets surface (#436)).
+Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query
 API live (Parser / Tree / Node / Query). Three query files
 ship: highlights.scm, tags.scm, locals.scm.

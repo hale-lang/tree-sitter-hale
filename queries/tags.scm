@@ -40,6 +40,11 @@
 (perspective_decl
   name: (identifier) @name) @definition.type
 
+; constitution declaration (GH #409) — a named claimset the
+; symbol picker should reach, like any other top-level name.
+(constitution_decl
+  name: (identifier) @name) @definition.type
+
 ; module declaration (rarely used; reserved syntax)
 (module_decl
   name: (identifier) @name) @definition.namespace

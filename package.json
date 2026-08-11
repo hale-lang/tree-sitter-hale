@@ -23,8 +23,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hale-lang/pond.git",
-    "directory": "heron"
+    "url": "https://github.com/hale-lang/tree-sitter-hale.git"
   },
   "tree-sitter": [
     {

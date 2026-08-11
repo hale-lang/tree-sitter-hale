@@ -26,6 +26,22 @@
     }
   },
   {
+    "type": "adopt_entry",
+    "named": true,
+    "fields": {
+      "constitution": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "array_expr",
     "named": true,
     "fields": {},
@@ -1224,6 +1240,11 @@
     }
   },
   {
+    "type": "bounded_annotation",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "bounded_clause",
     "named": true,
     "fields": {
@@ -1884,6 +1905,10 @@
       "required": false,
       "types": [
         {
+          "type": "adopt_entry",
+          "named": true
+        },
+        {
           "type": "claim_entry",
           "named": true
         }
@@ -2332,6 +2357,42 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "constitution_decl",
+    "named": true,
+    "fields": {
+      "base": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "claim_entry",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -5221,6 +5282,10 @@
           "named": true
         },
         {
+          "type": "bounded_annotation",
+          "named": true
+        },
+        {
           "type": "bus_block",
           "named": true
         },
@@ -5294,6 +5359,10 @@
         },
         {
           "type": "placement_block",
+          "named": true
+        },
+        {
+          "type": "sealed_annotation",
           "named": true
         },
         {
@@ -5933,6 +6002,10 @@
         },
         {
           "type": "const_decl",
+          "named": true
+        },
+        {
+          "type": "constitution_decl",
           "named": true
         },
         {
@@ -8020,9 +8093,19 @@
     "type": "require_form",
     "named": true,
     "fields": {
+      "class": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
       "group": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "identifier",
@@ -8033,7 +8116,7 @@
     },
     "children": {
       "multiple": false,
-      "required": true,
+      "required": false,
       "types": [
         {
           "type": "topic_ref",
@@ -8427,6 +8510,11 @@
     }
   },
   {
+    "type": "sealed_annotation",
+    "named": true,
+    "fields": {}
+  },
+  {
     "type": "self_expr",
     "named": true,
     "fields": {}
@@ -8738,6 +8826,10 @@
         },
         {
           "type": "const_decl",
+          "named": true
+        },
+        {
+          "type": "constitution_decl",
           "named": true
         },
         {
@@ -10387,6 +10479,14 @@
     "named": false
   },
   {
+    "type": "adopt",
+    "named": false
+  },
+  {
+    "type": "all",
+    "named": false
+  },
+  {
     "type": "alloc_per_call",
     "named": false
   },
@@ -10412,6 +10512,10 @@
   },
   {
     "type": "at",
+    "named": false
+  },
+  {
+    "type": "attributed",
     "named": false
   },
   {
@@ -10509,6 +10613,10 @@
   },
   {
     "type": "const",
+    "named": false
+  },
+  {
+    "type": "constitution",
     "named": false
   },
   {
@@ -10634,6 +10742,10 @@
   },
   {
     "type": "expose",
+    "named": false
+  },
+  {
+    "type": "extends",
     "named": false
   },
   {
@@ -10987,6 +11099,10 @@
   },
   {
     "type": "schedule",
+    "named": false
+  },
+  {
+    "type": "sealed",
     "named": false
   },
   {
