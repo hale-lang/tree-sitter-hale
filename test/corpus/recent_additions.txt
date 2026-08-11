@@ -455,3 +455,35 @@ locus RouterV1 : serves Router, tier 2 {
       (identifier)
       (closure_clause
         (identifier)))))
+
+==================
+Top-level claims block (library tier, #392)
+==================
+
+group settlers = { Wire };
+
+claims {
+    single_settle: count subscribers(topic Charges) <= 1;
+    wired: require subscribes(some settlers, topic Charges);
+}
+
+---
+
+(source_file
+  (group_decl
+    (identifier)
+    (group_member
+      (identifier)))
+  (claims_block
+    (claim_entry
+      (identifier)
+      (count_form
+        (topic_ref
+          (identifier))
+        (integer_literal)))
+    (claim_entry
+      (identifier)
+      (require_form
+        (identifier)
+        (topic_ref
+          (identifier))))))

@@ -113,6 +113,10 @@
         {
           "type": "SYMBOL",
           "name": "domain_decl"
+        },
+        {
+          "type": "SYMBOL",
+          "name": "claims_block"
         }
       ]
     },
