@@ -58,6 +58,7 @@ module.exports = grammar({
     [$.lvalue, $._expression],             // `foo.bar` could be lvalue or field_expr
     [$.binding_pattern, $.qualified_name], // bare ident in pattern position
     [$.if_stmt, $.if_expr],                // statement-position if vs value-position if
+    [$.match_stmt, $.match_expr],          // same, for match (Gap C)
     [$.qualified_name, $.path_expr],       // `Foo::Bar` followed by `{` (struct literal) vs `(` (path call)
     [$._locus_decorator, $.fn_decorators], // `@export` prefixes both locus and fn decls
     [$.qualified_name, $._expression],     // `foo` as qualified-name (for literal/type) vs identifier expression
@@ -835,8 +836,28 @@ module.exports = grammar({
       field('topic', $.identifier),
       ':',
       $._transport_spec,
+      optional($.codec_spec),
       optional($.binding_where),
       ';',
+    ),
+
+    // F.36 Slice 2 (2026-05-28): `codec(JsonCodec { })` — pluggable
+    // encode/decode for a cross-binary route that doesn't speak the
+    // internal wire format. The named locus must structurally
+    // provide `encode` / `decode`; the grammar just takes the
+    // struct-literal shape.
+    codec_spec: $ => seq(
+      'codec',
+      '(',
+      field('codec', $.identifier),
+      '{',
+      optional(seq(
+        $.struct_init,
+        repeat(seq(',', $.struct_init)),
+        optional(','),
+      )),
+      '}',
+      ')',
     ),
 
     _transport_spec: $ => choice(
@@ -1117,7 +1138,8 @@ module.exports = grammar({
       // type T = enum { A, B(int), ... };
       seq('type', field('name', $.identifier), optional($.generic_params),
           '=', 'enum', '{',
-          $.enum_variant, repeat(seq(',', $.enum_variant)), '}', ';'),
+          $.enum_variant, repeat(seq(',', $.enum_variant)),
+          optional(','), '}', ';'),
     ),
 
     struct_field: $ => seq(
@@ -1166,6 +1188,7 @@ module.exports = grammar({
       $.projection_type,
       $.perspective_type,
       $.array_type,
+      $.bounded_type,
       $.tuple_type,
       $.function_type,
       $.unit_type,
@@ -1208,6 +1231,21 @@ module.exports = grammar({
       '[',
       $._type_expr,
       optional(seq(';', $._expression)),
+      ']',
+    ),
+
+    // `bounded[T; N]` (2026-07-02) — the fixed-capacity counted
+    // collection, laid out inline as `{ i64 len, [N x T] }`.
+    // Capacity is a positive integer literal, not an expression.
+    // Distinct from the `bounded(N)` topic/subscribe clause, which
+    // shares the word: this one is `bounded` followed by `[`, in
+    // type position only.
+    bounded_type: $ => seq(
+      'bounded',
+      '[',
+      $._type_expr,
+      ';',
+      field('capacity', $.integer_literal),
       ']',
     ),
 
@@ -1319,11 +1357,15 @@ module.exports = grammar({
       $.effect_class_set,
     ),
 
+    // Members are effect_class_refs, not bare identifiers: an
+    // indexed family names its index here — `@effects(is: {
+    // knowledge(delta) })`, or `knowledge(*)` for the whole
+    // family — the same shape a claim's `effects(<class>)` takes.
     effect_class_set: $ => seq(
       '{',
       optional(seq(
-        $.identifier,
-        repeat(seq(',', $.identifier)),
+        $.effect_class_ref,
+        repeat(seq(',', $.effect_class_ref)),
       )),
       '}',
     ),
@@ -1428,11 +1470,25 @@ module.exports = grammar({
     let_stmt: $ => seq(
       'let',
       optional('mut'),
-      field('name', $.identifier),
+      choice(
+        field('name', $.identifier),
+        // Tuple destructure: `let (q, r) = divmod(23, 4);`. Names
+        // only — hale's parse_let_stmt takes idents here, not
+        // nested patterns — with an optional trailing comma.
+        field('names', $.let_tuple_names),
+      ),
       optional(seq(':', field('type', $._type_expr))),
       '=',
       field('value', $._expression),
       ';',
+    ),
+
+    let_tuple_names: $ => seq(
+      '(',
+      $.identifier,
+      repeat(seq(',', $.identifier)),
+      optional(','),
+      ')',
     ),
 
     assign_stmt: $ => seq(
@@ -1603,12 +1659,11 @@ module.exports = grammar({
       $.tuple_expr,
       $.array_expr,
       $.if_expr,
-      // match-as-expression deferred — match_stmt overlaps and
-      // tree-sitter can't disambiguate without lookahead help.
-      // Add via a distinct match_expr rule (or scanner.c) when
-      // a real workload needs it.
-      $.sum_expr,
-      $.prod_expr,
+      // Gap C (hale 67-match-expression): match in value position.
+      // A distinct rule from match_stmt, mirroring if_expr /
+      // if_stmt — the two overlap for a whole `match … { … }`, so
+      // the pair is a declared conflict.
+      $.match_expr,
       $.parenthesized,
       $.self_expr,
       $.identifier,
@@ -1640,6 +1695,13 @@ module.exports = grammar({
         $.discard_disposition,
         $.fail_disposition,
         $._expression,
+        // A substitute may be a BLOCK — `or { seen = err.kind; -1 }`
+        // — because hale parses the substitute with the general
+        // expression parser, and a block is an expression there.
+        // Modeled here only in this position: block-as-expression
+        // everywhere would collide with struct literals, and no
+        // hale source needs the general form.
+        $.block,
       )),
     )),
 
@@ -1711,6 +1773,10 @@ module.exports = grammar({
     // member_name admits framework-vocabulary keywords post-dot.
     _member_name: $ => choice(
       $.identifier,
+      // Numeric tuple-field access: `pair.0`, `pair.1`. hale lexes
+      // the digits as an IntLit and hands the digit string on as
+      // the member name; the tree keeps it as the literal it lexed.
+      $.integer_literal,
       'bulk', 'harmonic', 'resolution',
       'closure', 'locus', 'params', 'contract',
       'bus', 'capacity', 'tier', 'projection',
@@ -1725,8 +1791,34 @@ module.exports = grammar({
       field('else', choice($.if_expr, $.block)),
     )),
 
-    sum_expr: $ => seq('sum', '(', $._expression, ')'),
-    prod_expr: $ => seq('prod', '(', $._expression, ')'),
+    // `match` in value position (hale 67-match-expression). Same
+    // body as match_stmt — hale's own grammar.ebnf spells it
+    // `match_expr = match_stmt` — but a separate rule, so the
+    // statement and expression readings stay distinguishable in
+    // the tree the way if_stmt / if_expr do.
+    match_expr: $ => seq(
+      'match',
+      field('scrutinee', $._expression),
+      '{',
+      $.match_arm,
+      repeat(seq(',', $.match_arm)),
+      optional(','),
+      '}',
+    ),
+
+    // `sum(x)` / `prod(x)` — the reduction expressions closure
+    // assertions and capacity computations use — deliberately have
+    // NO rule of their own: they parse as ordinary calls.
+    //
+    // They used to, and the keyword stole the word. `sum` and
+    // `prod` are CONTEXTUAL in hale, but a rule led by the literal
+    // token makes tree-sitter prefer the keyword wherever an
+    // expression may start — so `sum = sum + n;` and `f(sum)` were
+    // hard parse errors, and a local named `sum` is ordinary in the
+    // corpus (07, 22, 50, 55 all failed on exactly this). A call
+    // shape costs nothing: highlights.scm colours the callee by
+    // name instead, and consumers that cared about the node can
+    // match `call_expr` with a `sum`/`prod` callee.
 
     tuple_expr: $ => seq(
       '(',

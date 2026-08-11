@@ -1,16 +1,10 @@
-# Corpus files the grammar does NOT yet parse — the enumerated sync
-# debt (tracking issue #1). The corpus workflow XFAILs these: a
-# file listed here that FAILS is expected; one that starts PASSING
-# must be removed from this list (the workflow errors to force the
-# cleanup); any file NOT listed here that fails is a regression.
-crates/hale-stdlib/hl/http.hl
-crates/hale-stdlib/hl/metrics.hl
-crates/hale-codegen/tests/fixtures/examples/07-control-flow/main.hl
-crates/hale-codegen/tests/fixtures/examples/22-moving-average/main.hl
-crates/hale-codegen/tests/fixtures/examples/26-tuples/main.hl
-crates/hale-codegen/tests/fixtures/examples/45-enum-payloads/main.hl
-crates/hale-codegen/tests/fixtures/examples/46-fn-arenas/main.hl
-crates/hale-codegen/tests/fixtures/examples/47-fn-arenas-extras/main.hl
-crates/hale-codegen/tests/fixtures/examples/50-mode-defaults/main.hl
-crates/hale-codegen/tests/fixtures/examples/55-geom-triangulate/main.hl
-crates/hale-codegen/tests/fixtures/examples/67-match-expression/main.hl
+# Corpus files the grammar does NOT yet parse — the XFAIL list the
+# corpus workflow reads. A file listed here that FAILS is expected
+# debt; one that starts PASSING must be removed (the workflow errors
+# to force the cleanup); any file NOT listed here that fails is a
+# regression.
+#
+# The list is EMPTY as of 2026-08-11 (issue #1 closed): every .hl
+# file in the hale repo parses without an ERROR or MISSING node.
+# Blank lines and `#` comments are ignored; add a repo-relative path
+# on its own line to XFAIL a file.

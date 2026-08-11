@@ -603,3 +603,167 @@ main locus App {
             (identifier))
           (integer_literal)
           (identifier))))))
+
+==================
+match in expression position + block arms + guards (Gap C)
+==================
+
+fn block_arms(n: Int) -> Int {
+    let mut sum = 0;
+    sum = sum + match n {
+        0 -> { let a = 5; a * 2 },
+        v if v < 0 -> -1,
+        _ -> 0,
+    };
+    return sum;
+}
+
+---
+
+(source_file
+  (function_decl
+    (identifier)
+    (parameter
+      (identifier)
+      (primitive_type))
+    (primitive_type)
+    (block
+      (let_stmt
+        (identifier)
+        (integer_literal))
+      (assign_stmt
+        (lvalue
+          (identifier))
+        (binary_expr
+          (identifier)
+          (match_expr
+            (identifier)
+            (match_arm
+              (literal_pattern
+                (integer_literal))
+              (block
+                (let_stmt
+                  (identifier)
+                  (integer_literal))
+                (binary_expr
+                  (identifier)
+                  (integer_literal))))
+            (match_arm
+              (binding_pattern
+                (identifier))
+              (binary_expr
+                (identifier)
+                (integer_literal))
+              (unary_expr
+                (integer_literal)))
+            (match_arm
+              (wildcard_pattern)
+              (integer_literal)))))
+      (return_stmt
+        (identifier)))))
+
+==================
+Enum payload variants + trailing comma, tuple destructure, tuple field
+==================
+
+type Ev = enum {
+    Tick(Int),
+    Trade(Decimal, Int),
+    Halt,
+};
+
+fn main() {
+    let (q, r) = divmod(23, 4);
+    println("q=", q, " rem=", r.0);
+}
+
+---
+
+(source_file
+  (type_decl
+    (identifier)
+    (enum_variant
+      (identifier)
+      (primitive_type))
+    (enum_variant
+      (identifier)
+      (primitive_type)
+      (primitive_type))
+    (enum_variant
+      (identifier)))
+  (function_decl
+    (identifier)
+    (block
+      (let_stmt
+        (let_tuple_names
+          (identifier)
+          (identifier))
+        (call_expr
+          (identifier)
+          (integer_literal)
+          (integer_literal)))
+      (expr_stmt
+        (call_expr
+          (identifier)
+          (string_literal)
+          (identifier)
+          (string_literal)
+          (field_expr
+            (identifier)
+            (integer_literal)))))))
+
+==================
+bounded[T; N], indexed effect family, `or` with a block substitute
+==================
+
+type Params {
+    path_keys: bounded[String; 8];
+}
+
+@effects(is: { knowledge(delta) })
+fn read(k: Int) -> Int {
+    let n = parse(k) or { seen = err.kind; -1 };
+    return n;
+}
+
+---
+
+(source_file
+  (type_decl
+    (identifier)
+    (struct_field
+      (identifier)
+      (bounded_type
+        (primitive_type)
+        (integer_literal))))
+  (function_decl
+    (fn_decorators
+      (effects_annotation
+        (identifier)
+        (effect_class_set
+          (effect_class_ref
+            (identifier)
+            (identifier)))))
+    (identifier)
+    (parameter
+      (identifier)
+      (primitive_type))
+    (primitive_type)
+    (block
+      (let_stmt
+        (identifier)
+        (or_disposition_expr
+          (call_expr
+            (identifier)
+            (identifier))
+          (block
+            (assign_stmt
+              (lvalue
+                (identifier))
+              (field_expr
+                (identifier)
+                (identifier)))
+            (unary_expr
+              (integer_literal)))))
+      (return_stmt
+        (identifier)))))

@@ -3,6 +3,50 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-08-11 — the sync debt is closed (issue #1)
+
+All 11 XFAIL'd corpus files parse. `known-gaps.txt` is empty, and
+the corpus workflow now parses **every** `.hl` in the hale repo
+(225 files) rather than just fixtures + stdlib — the wider net is
+what surfaced the last three gaps below, none of which live in the
+two directories the old job walked.
+
+What was actually broken, in rough order of blast radius:
+
+- **`sum` / `prod` stole the word.** They had rules led by the
+  literal token, so tree-sitter preferred the keyword wherever an
+  expression could start: `sum = sum + n;` and `f(sum)` were hard
+  parse errors, and a local named `sum` is ordinary in the corpus.
+  Four of the eleven files failed on only this. Both are contextual
+  in hale and grammatically identical to a call, so the rules are
+  gone — `sum(x)` parses as `call_expr`, and highlights.scm colours
+  the callee by name.
+- **`match` in value position** (Gap C) — `return match c { … }`,
+  including block arm bodies, guards, and match-exprs nested in
+  arithmetic. A `match_expr` rule mirroring `if_expr`/`if_stmt`,
+  with the pair declared as a conflict.
+- **Tuple destructuring** `let (q, r) = divmod(23, 4);` and
+  **numeric tuple fields** `pair.0` (`_member_name` takes an
+  integer literal, as hale's parser does).
+- **Enum trailing comma** — `enum { Tick(Int), Halt, }`. Payload
+  variants themselves already worked; the comma before `}` didn't.
+- **`bounded[T; N]`** as a type — in `spec/grammar.ebnf` since
+  2026-07-02, never modeled. Both stdlib failures were this.
+- **`or { … }`** — a block substitute on a fallible call site
+  (`or { seen = err.kind; -1 }`). hale parses the substitute with
+  the general expression parser, where a block is an expression;
+  modeled here only in that position, since block-as-expression
+  everywhere collides with struct literals.
+- **Indexed effect families in a class set** —
+  `@effects(is: { knowledge(delta) })`. The set took bare
+  identifiers; it now takes `effect_class_ref`, the same shape a
+  claim's `effects(<class>)` uses.
+- **`codec(L { … })`** on a binding entry — `codec_spec` in the
+  ebnf since F.36 Slice 2 (2026-05-28), never modeled.
+
+Validated: 38/38 corpus tests (3 new); 225/225 hale `.hl` files
+parse with no ERROR/MISSING node; all three query files load.
+
 ## 2026-08-11 — constitutions (#409) + the secrets surface (#436)
 
 Synced against hale `main` past the #392 library-tier commit this

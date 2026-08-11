@@ -181,6 +181,8 @@
 [
   "unix"
   "shm_ring"
+  ; F.36: the optional codec(L { }) clause on a binding entry.
+  "codec"
   "where"
   "role"
   "listen"
@@ -217,8 +219,6 @@
   "terminate"
   "reperspective"
   "release"
-  "sum"
-  "prod"
 ] @keyword
 
 ; Recovery primitives
@@ -311,6 +311,11 @@
 ; ============================================================
 
 (primitive_type) @type.builtin
+
+; `bounded[T; N]` is a type constructor, not the `bounded(N)`
+; topic clause and not the `@bounded` decorator — all three share
+; the word, so this is scoped to the type node.
+(bounded_type "bounded" @type.builtin)
 
 ; Declaration introduces this type's name.
 (type_decl name: (identifier) @type)
@@ -464,9 +469,12 @@
 ; Special expressions
 ; ============================================================
 
-; sum / prod are language-native reductions
-(sum_expr "sum" @function.builtin)
-(prod_expr "prod" @function.builtin)
+; sum / prod are the language-native reductions, but they parse as
+; ordinary calls — a rule led by the `sum` keyword stole the word
+; from every local named `sum`. Match the callee by name instead.
+((call_expr
+  callee: (identifier) @function.builtin)
+ (#any-of? @function.builtin "sum" "prod"))
 
 ; Self
 (self_expr) @variable.builtin

@@ -38,10 +38,12 @@ jobs:
         # regression.
         run: |
           set -e
-          files=$(find \
-            hale/crates/hale-codegen/tests/fixtures/examples \
-            hale/crates/hale-stdlib/hl \
-            -name '*.hl' | sort)
+          # EVERY .hl in the hale repo, not just fixtures + stdlib:
+          # the debt this list tracked is closed, and the wider net
+          # is what caught the last round of drift (`or { … }`,
+          # codec(...), indexed effect families all live in
+          # tests/hale and cli fixtures, outside the old two dirs).
+          files=$(find hale -name '*.hl' -not -path 'hale/target/*' | sort)
           count=$(echo "$files" | wc -l)
           echo "parsing $count corpus files"
           fail=0
@@ -65,5 +67,5 @@ jobs:
               fi
             fi
           done
-          echo "$xfail_hits known gap(s) still open (see known-gaps.txt / issue #1)"
+          echo "$xfail_hits known gap(s) still open (see known-gaps.txt)"
           exit $fail
