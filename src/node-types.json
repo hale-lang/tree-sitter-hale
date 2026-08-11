@@ -106,6 +106,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -122,10 +126,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -139,10 +139,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -182,6 +178,10 @@
         },
         {
           "type": "boolean_literal",
+          "named": true
+        },
+        {
+          "type": "bounded_type",
           "named": true
         },
         {
@@ -233,6 +233,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "named_type",
           "named": true
         },
@@ -261,10 +265,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "projection_type",
           "named": true
         },
@@ -282,10 +282,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -428,6 +424,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -444,10 +444,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -461,10 +457,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -548,6 +540,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -564,10 +560,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -581,10 +573,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -740,6 +728,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -756,10 +748,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -773,10 +761,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -825,6 +809,10 @@
         },
         {
           "type": "binding_where",
+          "named": true
+        },
+        {
+          "type": "codec_spec",
           "named": true
         },
         {
@@ -959,6 +947,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -975,10 +967,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -992,10 +980,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -1114,6 +1098,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "match_stmt",
           "named": true
         },
@@ -1131,10 +1119,6 @@
         },
         {
           "type": "path_expr",
-          "named": true
-        },
-        {
-          "type": "prod_expr",
           "named": true
         },
         {
@@ -1167,10 +1151,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -1271,6 +1251,64 @@
     }
   },
   {
+    "type": "bounded_type",
+    "named": true,
+    "fields": {
+      "capacity": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "integer_literal",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "array_type",
+          "named": true
+        },
+        {
+          "type": "bounded_type",
+          "named": true
+        },
+        {
+          "type": "function_type",
+          "named": true
+        },
+        {
+          "type": "named_type",
+          "named": true
+        },
+        {
+          "type": "perspective_type",
+          "named": true
+        },
+        {
+          "type": "primitive_type",
+          "named": true
+        },
+        {
+          "type": "projection_type",
+          "named": true
+        },
+        {
+          "type": "tuple_type",
+          "named": true
+        },
+        {
+          "type": "unit_type",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "break_stmt",
     "named": true,
     "fields": {}
@@ -1354,6 +1392,10 @@
             "named": true
           },
           {
+            "type": "bounded_type",
+            "named": true
+          },
+          {
             "type": "function_type",
             "named": true
           },
@@ -1427,6 +1469,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -1536,6 +1582,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -1552,10 +1602,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -1569,10 +1615,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -1651,6 +1693,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -1667,10 +1713,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -1684,10 +1726,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -1763,6 +1801,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -1980,6 +2022,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -1996,10 +2042,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -2013,10 +2055,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -2099,6 +2137,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -2115,10 +2157,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -2132,10 +2170,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -2184,6 +2218,32 @@
     }
   },
   {
+    "type": "codec_spec",
+    "named": true,
+    "fields": {
+      "codec": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "struct_init",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
     "type": "const_decl",
     "named": true,
     "fields": {
@@ -2211,6 +2271,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -2304,6 +2368,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -2320,10 +2388,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -2337,10 +2401,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -2478,6 +2538,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -2627,7 +2691,7 @@
       "required": false,
       "types": [
         {
-          "type": "identifier",
+          "type": "effect_class_ref",
           "named": true
         }
       ]
@@ -2716,6 +2780,10 @@
       "types": [
         {
           "type": "array_type",
+          "named": true
+        },
+        {
+          "type": "bounded_type",
           "named": true
         },
         {
@@ -2819,6 +2887,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -2835,10 +2907,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -2852,10 +2920,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -2938,6 +3002,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -2954,10 +3022,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -2971,10 +3035,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -3057,6 +3117,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -3073,10 +3137,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -3090,10 +3150,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -3148,6 +3204,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -3225,6 +3285,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -3307,6 +3371,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "integer_literal",
             "named": true
           },
           {
@@ -3400,6 +3468,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -3416,10 +3488,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -3433,10 +3501,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -3573,6 +3637,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -3589,10 +3657,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -3606,10 +3670,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -3758,6 +3818,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -3774,10 +3838,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -3791,10 +3851,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -3841,6 +3897,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -3914,6 +3974,10 @@
           "named": true
         },
         {
+          "type": "bounded_type",
+          "named": true
+        },
+        {
           "type": "function_type",
           "named": true
         },
@@ -3954,6 +4018,10 @@
       "types": [
         {
           "type": "array_type",
+          "named": true
+        },
+        {
+          "type": "bounded_type",
           "named": true
         },
         {
@@ -4005,6 +4073,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -4175,6 +4247,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -4191,10 +4267,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -4208,10 +4280,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -4319,6 +4387,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -4335,10 +4407,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -4352,10 +4420,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -4458,6 +4522,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -4474,10 +4542,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -4491,10 +4555,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -4603,6 +4663,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -4619,10 +4683,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -4636,10 +4696,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -4717,6 +4773,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -4733,10 +4793,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -4750,10 +4806,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -4826,6 +4878,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -4902,10 +4958,20 @@
     "fields": {
       "name": {
         "multiple": false,
-        "required": true,
+        "required": false,
         "types": [
           {
             "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "names": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "let_tuple_names",
             "named": true
           }
         ]
@@ -4924,6 +4990,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -5017,6 +5087,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -5030,10 +5104,6 @@
           },
           {
             "type": "path_expr",
-            "named": true
-          },
-          {
-            "type": "prod_expr",
             "named": true
           },
           {
@@ -5053,10 +5123,6 @@
             "named": true
           },
           {
-            "type": "sum_expr",
-            "named": true
-          },
-          {
             "type": "time_literal",
             "named": true
           },
@@ -5070,6 +5136,21 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "let_tuple_names",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "identifier",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -5116,6 +5197,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -5445,6 +5530,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -5461,10 +5550,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -5478,10 +5563,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -5568,6 +5649,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -5584,10 +5669,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -5601,10 +5682,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -5682,6 +5759,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -5698,10 +5779,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -5715,10 +5792,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -5761,6 +5834,132 @@
           }
         ]
       }
+    }
+  },
+  {
+    "type": "match_expr",
+    "named": true,
+    "fields": {
+      "scrutinee": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "array_expr",
+            "named": true
+          },
+          {
+            "type": "binary_expr",
+            "named": true
+          },
+          {
+            "type": "boolean_literal",
+            "named": true
+          },
+          {
+            "type": "bytes_literal",
+            "named": true
+          },
+          {
+            "type": "call_expr",
+            "named": true
+          },
+          {
+            "type": "decimal_literal",
+            "named": true
+          },
+          {
+            "type": "duration_literal",
+            "named": true
+          },
+          {
+            "type": "field_expr",
+            "named": true
+          },
+          {
+            "type": "float_literal",
+            "named": true
+          },
+          {
+            "type": "fstring_literal",
+            "named": true
+          },
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "if_expr",
+            "named": true
+          },
+          {
+            "type": "index_expr",
+            "named": true
+          },
+          {
+            "type": "integer_literal",
+            "named": true
+          },
+          {
+            "type": "match_expr",
+            "named": true
+          },
+          {
+            "type": "nil_literal",
+            "named": true
+          },
+          {
+            "type": "or_disposition_expr",
+            "named": true
+          },
+          {
+            "type": "parenthesized",
+            "named": true
+          },
+          {
+            "type": "path_expr",
+            "named": true
+          },
+          {
+            "type": "range_expr",
+            "named": true
+          },
+          {
+            "type": "self_expr",
+            "named": true
+          },
+          {
+            "type": "string_literal",
+            "named": true
+          },
+          {
+            "type": "struct_literal",
+            "named": true
+          },
+          {
+            "type": "time_literal",
+            "named": true
+          },
+          {
+            "type": "tuple_expr",
+            "named": true
+          },
+          {
+            "type": "unary_expr",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "match_arm",
+          "named": true
+        }
+      ]
     }
   },
   {
@@ -5828,6 +6027,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -5844,10 +6047,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -5861,10 +6060,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -5929,6 +6124,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -6176,6 +6375,10 @@
             "named": true
           },
           {
+            "type": "block",
+            "named": true
+          },
+          {
             "type": "boolean_literal",
             "named": true
           },
@@ -6232,6 +6435,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -6245,10 +6452,6 @@
           },
           {
             "type": "path_expr",
-            "named": true
-          },
-          {
-            "type": "prod_expr",
             "named": true
           },
           {
@@ -6269,10 +6472,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -6350,6 +6549,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -6366,10 +6569,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -6383,10 +6582,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -6475,6 +6670,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -6491,10 +6690,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -6508,10 +6703,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -6552,6 +6743,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -6651,6 +6846,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -6667,10 +6866,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -6684,10 +6879,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -6728,6 +6919,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -6842,6 +7037,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -6858,10 +7057,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -6875,10 +7070,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -6930,6 +7121,10 @@
           },
           {
             "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "integer_literal",
             "named": true
           },
           {
@@ -7023,6 +7218,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -7039,10 +7238,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -7056,10 +7251,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -7103,6 +7294,10 @@
         },
         {
           "type": "block",
+          "named": true
+        },
+        {
+          "type": "bounded_type",
           "named": true
         },
         {
@@ -7358,125 +7553,6 @@
     "fields": {}
   },
   {
-    "type": "prod_expr",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "array_expr",
-          "named": true
-        },
-        {
-          "type": "binary_expr",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
-          "type": "bytes_literal",
-          "named": true
-        },
-        {
-          "type": "call_expr",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "duration_literal",
-          "named": true
-        },
-        {
-          "type": "field_expr",
-          "named": true
-        },
-        {
-          "type": "float_literal",
-          "named": true
-        },
-        {
-          "type": "fstring_literal",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if_expr",
-          "named": true
-        },
-        {
-          "type": "index_expr",
-          "named": true
-        },
-        {
-          "type": "integer_literal",
-          "named": true
-        },
-        {
-          "type": "nil_literal",
-          "named": true
-        },
-        {
-          "type": "or_disposition_expr",
-          "named": true
-        },
-        {
-          "type": "parenthesized",
-          "named": true
-        },
-        {
-          "type": "path_expr",
-          "named": true
-        },
-        {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
-          "type": "range_expr",
-          "named": true
-        },
-        {
-          "type": "self_expr",
-          "named": true
-        },
-        {
-          "type": "string_literal",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
-          "named": true
-        },
-        {
-          "type": "time_literal",
-          "named": true
-        },
-        {
-          "type": "tuple_expr",
-          "named": true
-        },
-        {
-          "type": "unary_expr",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
     "type": "projection_class",
     "named": true,
     "fields": {},
@@ -7501,6 +7577,10 @@
       "types": [
         {
           "type": "array_type",
+          "named": true
+        },
+        {
+          "type": "bounded_type",
           "named": true
         },
         {
@@ -7614,6 +7694,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -7630,10 +7714,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -7647,10 +7727,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -7742,6 +7818,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -7758,10 +7838,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -7775,10 +7851,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -7886,6 +7958,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -7902,10 +7978,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -7919,10 +7991,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -8005,6 +8073,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -8018,10 +8090,6 @@
         },
         {
           "type": "path_expr",
-          "named": true
-        },
-        {
-          "type": "prod_expr",
           "named": true
         },
         {
@@ -8042,10 +8110,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -8206,6 +8270,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -8222,10 +8290,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -8239,10 +8303,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -8584,6 +8644,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -8600,10 +8664,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -8617,10 +8677,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -8698,6 +8754,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -8714,10 +8774,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -8731,10 +8787,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -8956,6 +9008,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -8972,10 +9028,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -8989,10 +9041,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -9043,6 +9091,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -9152,6 +9204,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -9168,10 +9224,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -9185,10 +9237,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -9228,125 +9276,6 @@
       "types": [
         {
           "type": "struct_init",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "sum_expr",
-    "named": true,
-    "fields": {},
-    "children": {
-      "multiple": false,
-      "required": true,
-      "types": [
-        {
-          "type": "array_expr",
-          "named": true
-        },
-        {
-          "type": "binary_expr",
-          "named": true
-        },
-        {
-          "type": "boolean_literal",
-          "named": true
-        },
-        {
-          "type": "bytes_literal",
-          "named": true
-        },
-        {
-          "type": "call_expr",
-          "named": true
-        },
-        {
-          "type": "decimal_literal",
-          "named": true
-        },
-        {
-          "type": "duration_literal",
-          "named": true
-        },
-        {
-          "type": "field_expr",
-          "named": true
-        },
-        {
-          "type": "float_literal",
-          "named": true
-        },
-        {
-          "type": "fstring_literal",
-          "named": true
-        },
-        {
-          "type": "identifier",
-          "named": true
-        },
-        {
-          "type": "if_expr",
-          "named": true
-        },
-        {
-          "type": "index_expr",
-          "named": true
-        },
-        {
-          "type": "integer_literal",
-          "named": true
-        },
-        {
-          "type": "nil_literal",
-          "named": true
-        },
-        {
-          "type": "or_disposition_expr",
-          "named": true
-        },
-        {
-          "type": "parenthesized",
-          "named": true
-        },
-        {
-          "type": "path_expr",
-          "named": true
-        },
-        {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
-          "type": "range_expr",
-          "named": true
-        },
-        {
-          "type": "self_expr",
-          "named": true
-        },
-        {
-          "type": "string_literal",
-          "named": true
-        },
-        {
-          "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
-          "named": true
-        },
-        {
-          "type": "time_literal",
-          "named": true
-        },
-        {
-          "type": "tuple_expr",
-          "named": true
-        },
-        {
-          "type": "unary_expr",
           "named": true
         }
       ]
@@ -9452,6 +9381,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -9605,6 +9538,10 @@
           "named": true
         },
         {
+          "type": "match_expr",
+          "named": true
+        },
+        {
           "type": "nil_literal",
           "named": true
         },
@@ -9621,10 +9558,6 @@
           "named": true
         },
         {
-          "type": "prod_expr",
-          "named": true
-        },
-        {
           "type": "range_expr",
           "named": true
         },
@@ -9638,10 +9571,6 @@
         },
         {
           "type": "struct_literal",
-          "named": true
-        },
-        {
-          "type": "sum_expr",
           "named": true
         },
         {
@@ -9703,6 +9632,10 @@
           "named": true
         },
         {
+          "type": "bounded_type",
+          "named": true
+        },
+        {
           "type": "function_type",
           "named": true
         },
@@ -9751,6 +9684,10 @@
           },
           {
             "type": "array_type",
+            "named": true
+          },
+          {
+            "type": "bounded_type",
             "named": true
           },
           {
@@ -9896,6 +9833,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -9912,10 +9853,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -9929,10 +9866,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -10060,6 +9993,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -10076,10 +10013,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -10093,10 +10026,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -10190,6 +10119,10 @@
             "named": true
           },
           {
+            "type": "match_expr",
+            "named": true
+          },
+          {
             "type": "nil_literal",
             "named": true
           },
@@ -10206,10 +10139,6 @@
             "named": true
           },
           {
-            "type": "prod_expr",
-            "named": true
-          },
-          {
             "type": "range_expr",
             "named": true
           },
@@ -10223,10 +10152,6 @@
           },
           {
             "type": "struct_literal",
-            "named": true
-          },
-          {
-            "type": "sum_expr",
             "named": true
           },
           {
@@ -10605,6 +10530,10 @@
   },
   {
     "type": "closure",
+    "named": false
+  },
+  {
+    "type": "codec",
     "named": false
   },
   {
@@ -10998,10 +10927,6 @@
     "named": false
   },
   {
-    "type": "prod",
-    "named": false
-  },
-  {
     "type": "projection",
     "named": false
   },
@@ -11167,10 +11092,6 @@
   },
   {
     "type": "subscribes",
-    "named": false
-  },
-  {
-    "type": "sum",
     "named": false
   },
   {

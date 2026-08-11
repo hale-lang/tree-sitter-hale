@@ -44,24 +44,25 @@ one tool: it's the shared substrate.
 
 ## Status
 
-v0 grammar mature: covers all of `spec/grammar.ebnf` as
-exercised by a real editor corpus + hale stdlib (35/35 corpus
-tests pass; every file in the hale acceptance corpus parses
-except the 11 enumerated in
-[`known-gaps.txt`](./known-gaps.txt) — re-verified 2026-08-11
-with tree-sitter 0.26.9 against hale `main`, current through
-constitutions (#409) and the secrets surface (#436)).
+v0 grammar mature: **every `.hl` file in the hale repo parses**
+— all 225 of them, no ERROR or MISSING node — and 38/38 corpus
+tests pass. Re-verified 2026-08-11 with tree-sitter 0.26.9
+against hale `main`, current through constitutions (#409) and
+the secrets surface (#436).
+[`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is empty.
 Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query
 API live (Parser / Tree / Node / Query). Three query files
 ship: highlights.scm, tags.scm, locals.scm.
 
 scanner.c for the trickiest contextual keywords (`mode`,
-`captures`, `inline`, `fail`, `or`, `raise`, `with`,
-`fallible`) is deferred until specific parse failures
-motivate it — current grammar treats them as keywords with
-context-based parsing, which works for all real-world + stdlib
-code today.
+`captures`, `inline`, `fail`, `raise`, `with`, `fallible`) is
+deferred until specific parse failures motivate it — the
+grammar treats them as keywords with context-based parsing,
+which works across the whole corpus today. `sum` / `prod` used
+to be on that list and were the counter-example: a rule led by
+the keyword stole the word from every local named `sum`, so
+they now parse as ordinary calls.
 
 See [`STATUS.md`](./STATUS.md) for the verification details
 and [`integrations/`](./integrations/) for per-editor setup
