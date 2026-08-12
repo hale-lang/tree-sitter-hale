@@ -45,10 +45,10 @@ one tool: it's the shared substrate.
 ## Status
 
 v0 grammar mature: **every `.hl` file in the hale repo parses**
-— all 225 of them, no ERROR or MISSING node — and 38/38 corpus
-tests pass. Re-verified 2026-08-11 with tree-sitter 0.26.9
-against hale `main`, current through constitutions (#409) and
-the secrets surface (#436).
+— all 225 of them, no ERROR or MISSING node — and 41/41 corpus
+tests pass. Re-verified 2026-08-12 with tree-sitter 0.26.9
+against hale `main`, current through the placement pairings
+(replica-sharded delivery, pool affinity).
 [`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is empty.
 Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query

@@ -725,9 +725,9 @@ module.exports = grammar({
         'cooperative',
         optional(seq(
           '(',
-          'pool',
-          '=',
-          field('pool', $.identifier),
+          $.coop_attr,
+          repeat(seq(',', $.coop_attr)),
+          optional(','),
           ')',
         )),
       ),
@@ -746,6 +746,16 @@ module.exports = grammar({
     pin_attr: $ => choice(
       $.pin_affinity,
       seq('replicas', '=', field('replicas', $.integer_literal)),
+    ),
+
+    // Pool affinity (2026-08-12): `cooperative` takes the same
+    // affinity forms `pinned` does — they bind the POOL's worker
+    // thread rather than a locus. `replicas` stays pinned-only.
+    // "At most one affinity, at most one pool, entries naming one
+    // pool must agree" is the typechecker's, not the grammar's.
+    coop_attr: $ => choice(
+      seq('pool', '=', field('pool', $.identifier)),
+      $.pin_affinity,
     ),
 
     pin_affinity: $ => choice(
@@ -978,7 +988,30 @@ module.exports = grammar({
       field('handler', $.identifier),
       optional(seq('of', 'type', field('type', $._type_expr))),
       optional($.bounded_clause),
+      optional($.key_filter),
       ';',
+    ),
+
+    // Phase 3 routing keys: `where key == <rhs>` narrows delivery
+    // to publishes carrying a matching key.
+    //   `_`        — the catch-unmatched subscriber (only legal on a
+    //                topic declaring `on_unmatched: fallback`)
+    //   `replica`  — (2026-08-12) this instance's 0-based replica
+    //                index, so K `pinned(replicas = K)` instances
+    //                shard an Int-keyed topic with one subscribe
+    //                line. Contextual in exactly this position.
+    //   otherwise  — a literal, a const, or `self.<field>`.
+    // Every filter shape requires a keyed topic; the typechecker
+    // owns that, and which RHS forms a given topic admits.
+    key_filter: $ => seq(
+      'where',
+      'key',
+      '==',
+      field('key', choice(
+        $.wildcard_pattern,
+        alias('replica', $.replica_key),
+        $._expression,
+      )),
     ),
 
     bus_publish: $ => seq(
@@ -1433,6 +1466,8 @@ module.exports = grammar({
       $.let_stmt,
       $.assign_stmt,
       $.send_stmt,
+      $.each_stmt,
+      $.shm_write_stmt,
       $.if_stmt,
       $.match_stmt,
       $.for_stmt,
@@ -1516,6 +1551,42 @@ module.exports = grammar({
       field('payload', $._expression),
       ';',
     )),
+
+    // The `each { … }` chain terminal — the one place a block is an
+    // argument. `users.filter(it.age >= 18).each { … }` is
+    // block-shaped, so like `while` / `if` it stands as a statement
+    // with the trailing `;` optional.
+    //
+    // Deliberately NOT keyed on the literal word `each`: a rule led
+    // by that token would reserve it, and `x.each` as an ordinary
+    // field read would stop parsing — the trap `sum` / `prod` fell
+    // into. So the shape is "any field access followed by a block,"
+    // which accepts a little more than hale does (hale claims the
+    // block only after `.each`). Over-acceptance is the safe
+    // direction here: it costs a highlighter nothing, and hale owns
+    // the rejection.
+    each_stmt: $ => seq(
+      field('chain', $.field_expr),
+      field('body', $.block),
+      optional(';'),
+    ),
+
+    // Zero-copy ring producer: `Recs.write(max) { w => … ; len }`.
+    // Reserves up to `max` bytes, binds a writable view over the
+    // slot, and commits the byte count the body's tail expression
+    // yields. Same reasoning as each_stmt on not reserving `write`:
+    // the `IDENT =>` header is what distinguishes this from a
+    // block-argument call, and that's enough.
+    shm_write_stmt: $ => seq(
+      field('target', $.call_expr),
+      '{',
+      field('binding', $.identifier),
+      '=>',
+      repeat($._statement),
+      optional($._expression),
+      '}',
+      optional(';'),
+    ),
 
     if_stmt: $ => prec.right(seq(
       'if',
