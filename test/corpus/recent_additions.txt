@@ -172,7 +172,8 @@ main locus App {
       (placement_entry
         field: (identifier)
         spec: (placement_spec
-          pool: (identifier)))
+          (coop_attr
+            pool: (identifier))))
       (placement_entry
         field: (identifier)
         spec: (placement_spec)))))
@@ -406,7 +407,8 @@ main locus App {
       (placement_entry
         (identifier)
         (placement_spec
-          (identifier))
+          (coop_attr
+            (identifier)))
         (placement_constraint)))))
 
 ==================
@@ -767,3 +769,169 @@ fn read(k: Int) -> Int {
               (integer_literal)))))
       (return_stmt
         (identifier)))))
+
+==================
+Routing-key filters, incl. `where key == replica` (2026-08-12)
+==================
+
+locus Worker {
+    bus {
+        subscribe Conn as on_conn where key == replica;
+        subscribe Jobs as on_job bounded(8, drop_new) where key == self.shard;
+        subscribe Rest as on_rest where key == _;
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    (identifier)
+    (bus_block
+      (bus_subscribe
+        (qualified_name
+          (identifier))
+        (identifier)
+        (key_filter
+          (replica_key)))
+      (bus_subscribe
+        (qualified_name
+          (identifier))
+        (identifier)
+        (bounded_clause
+          (integer_literal)
+          (identifier))
+        (key_filter
+          (field_expr
+            (self_expr)
+            (identifier))))
+      (bus_subscribe
+        (qualified_name
+          (identifier))
+        (identifier)
+        (key_filter
+          (wildcard_pattern))))))
+
+==================
+Pool affinity on cooperative placement (2026-08-12)
+==================
+
+main locus App {
+    placement {
+        w: cooperative(pool = io, cores = 0..4);
+        x: cooperative(pool = ws) where async_io;
+        y: pinned(cores = {1, 2}, replicas = 4);
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    (identifier)
+    (placement_block
+      (placement_entry
+        (identifier)
+        (placement_spec
+          (coop_attr
+            (identifier))
+          (coop_attr
+            (pin_affinity
+              (core_set
+                (integer_literal)
+                (integer_literal))))))
+      (placement_entry
+        (identifier)
+        (placement_spec
+          (coop_attr
+            (identifier)))
+        (placement_constraint))
+      (placement_entry
+        (identifier)
+        (placement_spec
+          (pin_attr
+            (pin_affinity
+              (core_set
+                (integer_literal)
+                (integer_literal))))
+          (pin_attr
+            (integer_literal)))))))
+
+==================
+`each { }` chain terminal + zero-copy ring write block
+==================
+
+fn main() {
+    users.filter(it.age >= 18).each {
+        total = total + it.age;
+        "user.greet" <- Greeting { id: it.id };
+    }
+    xs.enumerate().each { println(idx, ": ", it.name); };
+    Frames.write(64) { w => fill(w); 64 };
+}
+
+---
+
+(source_file
+  (function_decl
+    (identifier)
+    (block
+      (each_stmt
+        (field_expr
+          (call_expr
+            (field_expr
+              (identifier)
+              (identifier))
+            (binary_expr
+              (field_expr
+                (identifier)
+                (identifier))
+              (integer_literal)))
+          (identifier))
+        (block
+          (assign_stmt
+            (lvalue
+              (identifier))
+            (binary_expr
+              (identifier)
+              (field_expr
+                (identifier)
+                (identifier))))
+          (send_stmt
+            (string_literal)
+            (struct_literal
+              (qualified_name
+                (identifier))
+              (struct_init
+                (identifier)
+                (field_expr
+                  (identifier)
+                  (identifier)))))))
+      (each_stmt
+        (field_expr
+          (call_expr
+            (field_expr
+              (identifier)
+              (identifier)))
+          (identifier))
+        (block
+          (expr_stmt
+            (call_expr
+              (identifier)
+              (identifier)
+              (string_literal)
+              (field_expr
+                (identifier)
+                (identifier))))))
+      (shm_write_stmt
+        (call_expr
+          (field_expr
+            (identifier)
+            (identifier))
+          (integer_literal))
+        (identifier)
+        (expr_stmt
+          (call_expr
+            (identifier)
+            (identifier)))
+        (integer_literal)))))

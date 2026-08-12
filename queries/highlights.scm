@@ -145,7 +145,14 @@
   "of"
   "payload"
   "subject"
+  ; Phase 3 routing keys: `where key == <rhs>` on a subscribe.
+  "key"
 ] @keyword
+
+; `replica` — this instance's 0-based replica index. A value, not
+; a keyword: it reads as the builtin constant it is, and it holds
+; that meaning only as a key-filter RHS.
+(key_filter (replica_key) @constant.builtin)
 
 ; Capacity keywords
 [
@@ -432,6 +439,8 @@
   "|="
   "^="
   "->"
+  ; The `w =>` header of a zero-copy ring write block.
+  "=>"
 ] @operator
 
 ; Bus send — distinctive enough to call out.

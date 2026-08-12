@@ -3,6 +3,48 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-08-12 — placement pairings, routing keys, block-shaped terminals
+
+Synced against hale `main` at 37914e5 (20 commits on from the last
+pass). Two of the four additions are the day's language changes; the
+other two were standing debt the corpus never exercised, found by
+walking the ebnf and the parser rather than waiting for a red build.
+
+- **`where key == <rhs>`** — the Phase 3 routing-key filter on a
+  `subscribe` line, which the grammar had never modeled at all.
+  Includes today's new RHS, **`replica`** (2026-08-12): the
+  subscribing instance's 0-based replica index, so K
+  `pinned(replicas = K)` instances shard an Int-keyed topic with one
+  subscribe line. Aliased to a `replica_key` node and highlighted as
+  the builtin constant it is; `_` reuses `wildcard_pattern`.
+- **Pool affinity** (2026-08-12) — `cooperative(pool = X, cores =
+  0..4)`. `cooperative` now takes the same affinity forms `pinned`
+  does, via a `coop_attr` rule; `replicas` stays pinned-only. This
+  changes the tree for the plain `cooperative(pool = io)` form too,
+  which now nests under `coop_attr`.
+- **`.each { … }`** — the chain terminal, the one place a block is
+  an argument. Block-shaped, so like `while`/`if` it stands as a
+  statement with the trailing `;` optional. Documented surface since
+  2026-08-04 and used throughout the collections docs, but no `.hl`
+  in the hale repo uses it yet, so no red build ever pointed at it.
+- **`Recs.write(max) { w => … ; len }`** — the zero-copy ring
+  producer, `shm_write_stmt` in the ebnf, never modeled.
+
+Neither `each` nor `write` is keyed on its literal word. A rule led
+by either token would reserve it, and `x.each` as an ordinary field
+read would stop parsing — exactly the trap `sum`/`prod` fell into
+last pass. `each_stmt` is "a field access followed by a block" and
+`shm_write_stmt` is "a call followed by `{ IDENT => … }`", which
+accept a little more than hale does. Over-acceptance is the safe
+direction: it costs a highlighter nothing, and hale owns rejection.
+
+Validated: 41/41 corpus tests (3 new); 225/225 hale `.hl` files
+parse; all three query files load.
+
+Worth noting upstream: `key` and `replica` are contextual keywords
+the hale parser recognizes but `crates/hale-syntax/src/keywords.rs`
+doesn't list, so the docs-site highlighter won't colour them.
+
 ## 2026-08-11 — the sync debt is closed (issue #1)
 
 All 11 XFAIL'd corpus files parse. `known-gaps.txt` is empty, and
