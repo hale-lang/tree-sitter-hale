@@ -1326,14 +1326,58 @@
     "named": true,
     "fields": {},
     "children": {
-      "multiple": false,
+      "multiple": true,
       "required": true,
       "types": [
         {
-          "type": "integer_literal",
+          "type": "budget_dim",
           "named": true
         }
       ]
+    }
+  },
+  {
+    "type": "budget_dim",
+    "named": true,
+    "fields": {
+      "arg": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "*",
+            "named": false
+          },
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "key": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          },
+          {
+            "type": "publish",
+            "named": false
+          }
+        ]
+      },
+      "value": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "integer_literal",
+            "named": true
+          }
+        ]
+      }
     }
   },
   {
@@ -9754,7 +9798,27 @@
     "type": "topic_field",
     "named": true,
     "fields": {
+      "key": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
       "on_full": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "on_unmatched": {
         "multiple": false,
         "required": false,
         "types": [
@@ -10813,10 +10877,6 @@
     "named": false
   },
   {
-    "type": "alloc_per_call",
-    "named": false
-  },
-  {
     "type": "any",
     "named": false
   },
@@ -11195,6 +11255,10 @@
     "named": false
   },
   {
+    "type": "keyed_by",
+    "named": false
+  },
+  {
     "type": "l3",
     "named": false
   },
@@ -11281,6 +11345,10 @@
   },
   {
     "type": "on_overflow",
+    "named": false
+  },
+  {
+    "type": "on_unmatched",
     "named": false
   },
   {

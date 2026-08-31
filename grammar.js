@@ -261,6 +261,14 @@ module.exports = grammar({
       // policy applied when it is full.
       seq($.bounded_clause, ';'),
       seq('on_full', ':', field('on_full', $.identifier), ';'),
+      // Routing key: `keyed_by FIELD;` names the payload field the bus
+      // routes on, so a subscriber can filter with `where key == …`.
+      // Deliberately colon-free — it reads as a phrase, not a setting.
+      seq('keyed_by', field('key', $.identifier), ';'),
+      // What happens to a keyed publish no subscriber matched:
+      // `swallow` | `fail` | `fallback`. Left as an identifier for the
+      // same reason `on_full` is — the compiler owns the legal set.
+      seq('on_unmatched', ':', field('on_unmatched', $.identifier), ';'),
     ),
 
     // `bounded(N)` on a topic; `bounded(N, <policy>)` on a subscribe.
@@ -1420,14 +1428,29 @@ module.exports = grammar({
 
     unbounded_annotation: $ => seq('@', 'unbounded'),
 
+    // `@budget(alloc_per_call = 0, stack_bytes = 4096)` — one or more
+    // comma-separated dimensions, not just `alloc_per_call`. The
+    // documented set is alloc_per_call / stack_bytes / block_points /
+    // publish / fanout, plus user effect-class dimensions which may be
+    // parameterized (`knowledge(delta) = 0`). Keys stay idents rather
+    // than a keyword list: the compiler owns which are legal, and
+    // hard-coding one name here is what made `@budget(stack_bytes = N)`
+    // an ERROR node in the corpus.
     budget_annotation: $ => seq(
       '@',
       'budget',
       '(',
-      'alloc_per_call',
-      '=',
-      $.integer_literal,
+      $.budget_dim,
+      repeat(seq(',', $.budget_dim)),
+      optional(','),
       ')',
+    ),
+
+    budget_dim: $ => seq(
+      field('key', choice($.identifier, 'publish')),
+      optional(seq('(', field('arg', choice($.identifier, '*')), ')')),
+      '=',
+      field('value', $.integer_literal),
     ),
 
     hot_annotation: $ => seq('@', 'hot'),

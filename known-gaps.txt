@@ -4,7 +4,14 @@
 # to force the cleanup); any file NOT listed here that fails is a
 # regression.
 #
-# The list is EMPTY as of 2026-08-11 (issue #1 closed): every .hl
-# file in the hale repo parses without an ERROR or MISSING node.
+# The list is EMPTY as of 2026-08-31: every .hl file in the hale repo
+# parses without an ERROR or MISSING node (229/229 against hale
+# 0.18.0).
+#
+# NOTE on staleness: this claim held on 2026-08-11 and had quietly
+# stopped holding by 2026-08-31 — `keyed_by` on a topic and
+# `@budget(stack_bytes = N)` both produced ERROR nodes, because the
+# corpus is not re-run against a moving `hale`. Re-check it whenever
+# the compiler bumps, not only when this repo changes.
 # Blank lines and `#` comments are ignored; add a repo-relative path
 # on its own line to XFAIL a file.

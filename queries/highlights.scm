@@ -69,6 +69,10 @@
   "paths"
   "from"
   "may_be_empty"
+  ; `bound <effect> <= N on paths from <origin>` — `on` is a lexer
+  ; keyword and the grammar already parses it; it was simply never
+  ; queried, so it read as plain text beside the words around it.
+  "on"
 ] @keyword
 
 ; GH #436: the universal claim forms. `sealed` is scoped to
@@ -147,6 +151,12 @@
   "subject"
   ; Phase 3 routing keys: `where key == <rhs>` on a subscribe.
   "key"
+  ; ...and the topic side of the same feature: `keyed_by FIELD;` names
+  ; the routing field, `on_unmatched:` says what happens to a keyed
+  ; publish nothing matched.
+  "keyed_by"
+  "on_unmatched"
+  "on_full"
 ] @keyword
 
 ; `replica` — this instance's 0-based replica index. A value, not
@@ -300,6 +310,13 @@
 (no_panic_annotation
   "@" @attribute
   "no_panic" @attribute)
+
+; GH #265: the `@no_*` effect-assert family — documented sugar over
+; `@effects(none: {...})`, enumerated by the compiler's
+; `effect_assert_for()`. The grammar folds all six into one token, so
+; one query covers @no_syscall / @no_block / @no_ffi / @no_publish /
+; @no_spawn / @no_recursion.
+(no_effect_annotation) @attribute
 
 (deterministic_annotation
   "@" @attribute
