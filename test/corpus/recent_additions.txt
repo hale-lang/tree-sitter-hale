@@ -935,3 +935,69 @@ fn main() {
             (identifier)
             (identifier)))
         (integer_literal)))))
+
+==================
+Topic routing key + on_unmatched, and multi-dimension @budget (2026-08-31)
+==================
+
+topic Readings {
+    payload: Reading;
+    subject: "sensor.reading";
+    keyed_by sensor;
+    on_unmatched: swallow;
+}
+
+@budget(alloc_per_call = 0, stack_bytes = 4096)
+fn tight(n: Int) -> Int {
+    return n;
+}
+
+@budget(block_points = 0)
+fn no_block_points() {
+    println("x");
+}
+
+---
+
+(source_file
+  (topic_decl
+    name: (identifier)
+    (topic_field
+      payload_type: (named_type
+        (qualified_name
+          (identifier))))
+    (topic_field
+      subject: (string_literal))
+    (topic_field
+      key: (identifier))
+    (topic_field
+      on_unmatched: (identifier)))
+  (function_decl
+    (fn_decorators
+      (budget_annotation
+        (budget_dim
+          key: (identifier)
+          value: (integer_literal))
+        (budget_dim
+          key: (identifier)
+          value: (integer_literal))))
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (return_stmt
+        (identifier))))
+  (function_decl
+    (fn_decorators
+      (budget_annotation
+        (budget_dim
+          key: (identifier)
+          value: (integer_literal))))
+    name: (identifier)
+    (block
+      (expr_stmt
+        (call_expr
+          callee: (identifier)
+          (string_literal))))))
