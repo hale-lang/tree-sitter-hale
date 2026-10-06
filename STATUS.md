@@ -3,6 +3,122 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-10-06 — the unit dialect, roles and `@gated`, the api binding
+
+Synced against hale `main` at 89d0e7920. The checkout read was
+8de99d6c9, 15 commits behind it and identical in `spec/grammar.ebnf`
+and `crates/hale-syntax`; the 15 add three lifecycle fixtures and
+`spec/runtime.md` prose. The last pass (2026-08-31, hale 0.18.0 at
+40f0428e) left no entry here; c863c39's message is its record. The
+ebnf grew 234 lines since, and all of it is modeled:
+
+- **A scanner — `src/scanner.c`, the repo's first.** One token: the
+  MAGNITUDE of a quantity literal. Where `500ms` splits takes
+  lookahead the DSL has no word for: `3d` is the Decimal `3` but
+  `3day` is a day count, `3e5` a Float but `2EUR` two euros, `0x1F`
+  a radix integer. The scanner decides exactly as hale's `lex_number`
+  does and hands everything else back to the internal lexer; the unit
+  after it is an ordinary identifier, so a highlighter can colour the
+  two halves apart. Every binding compiles it now (Rust, Node,
+  Python, Swift, Go, `hale.toml`; the Makefile already globbed
+  `src/*.c`). The contextual keywords stay deferred.
+- **Quantity literals (#1076)** — `quantity_literal`, fields
+  `magnitude` (an `integer_literal`) and `unit` (a `unit_name`),
+  replacing `duration_literal`. Changes existing trees: every
+  `500ms` / `5s` was a leaf `(duration_literal)`. `m` and `d` are no
+  longer time suffixes and the compound `1h30m` reads, as in hale, as
+  one literal of the unit `h30m` (the checker refuses it). `3d` stays
+  `decimal_literal`; `float_literal` gains the exponent-only `3e5`
+  and `decimal_literal` an exponent (`1e5d`), both as hale lexes them.
+- **`unit` declarations (#1076)** — `unit_decl` (`name`, `factor`),
+  the factor a `unit_factor` (`numerator`, `denominator`, `unit`).
+  `1_000 ns` and `1_000ns` give one tree; so do the two spellings of a
+  denomination and of an origin.
+- **Scalar types (#1076)** — a fourth `type_decl` form, fields `kind`
+  (`scalar_kind`: quantity / point / distinct), `base`, `denomination`
+  (`denomination`: `multiple`, `unit`) and `clauses` (`scalar_clauses`
+  of `range_clause`, `round_clause`, `origin_clause`). It splits from
+  the alias form on the token after the base (`;`, `in` or `{`); the
+  alias, struct and enum trees are unchanged.
+- **`x.in(D)` (#1076)** — `conversion` (`value`, `unit`). `in` is a
+  hard keyword, so the form steals nothing. `x.split(u)` is NOT a
+  `conversion` and stays a `call_expr`: hale parses it as an ordinary
+  method call, it is indistinguishable from `line.split(",")`, and a
+  rule led by `split` would reserve the word after `.` — the
+  `sum` / `prod` trap again.
+- **Policies (#1076)** — `policy`, for `floor` `ceil` `trunc`
+  `half_even` `half_up` `clamp` `wrap`, as an `or` disposition
+  (`d.in(s) or floor`) and as a `round:` value. Any other `round:`
+  name stays an identifier, as hale parses it and the checker refuses
+  it; `or raise` keeps `raise_disposition`; `or <value>` /
+  `or handler(err)` stay expressions.
+- **Roles and gates (#1109)** — `role_decl` (`name`, `include`) and
+  `gated_annotation` (`role`): a fn decorator, before an `expose`
+  (only — hale refuses it on a `consume`) and before a `publish`.
+  `interface_method_sig` now takes `fn_decorators`, so a
+  perspective's `@gated fn route(…) -> T;` parses as it does in
+  hale; the checker refuses it.
+- **The api binding (#1106, #1135, #1137)** — `api_binding` (`path`,
+  `api_kwarg`s with `key` / `value`, `api_http` with `host` / `port` /
+  `principals`, `api_serve` with `param`s) beside `binding_entry` in
+  `bindings { }`.
+- **Qualified names (#527 B6, #724, #1034)** — a binding's topic, a
+  codec, an adapter transport, `serves P`, `perspective(P)` and
+  `reperspective … as Impl` take a `qualified_name`. Changes existing
+  trees: each was a bare `(identifier)` and is now
+  `(qualified_name (identifier))`, even with one segment. Several
+  `dna/` files bind `dna::Topic: nats::NatsAdapter { }`, which was an
+  ERROR before this pass.
+- **`module` bodies exclude `target`** (#901): `_module_member`. hale
+  refuses one at any depth. `type` / `const` stay accepted in a locus
+  body, since hale's parser reads them so the checker can refuse them
+  as a located error.
+- **`release (c: Kid) { … }`** — the lifecycle hook since 2026-05-30,
+  never modeled; 13 corpus files use it now. Found by the audit below,
+  not the ebnf diff.
+
+The cost, and why: hale's dialect words are contextual. tree-sitter
+gets that for free wherever only an identifier is valid; a keyword only
+steals where an identifier is valid in the same state. Three such
+spots are new, and each loses one spelling hale accepts: `type P =
+point;` (an alias of a type named `point` / `quantity` /
+`distinct`); a call of a fn named like a policy directly after `or`
+(`or floor(x)`; `or (floor)` and `std::math::floor(x)` are fine); and
+an imported topic through an alias named `api` at a binding head
+(`api::T: …`). A grep audit of the 949 corpus files and every doc
+block found none of the three.
+
+Queries: the new words in `highlights.scm` as the existing ones are;
+`(policy)` @keyword; `(scalar_kind)` @keyword.modifier; a quantity
+literal's magnitude @number via `integer_literal` and its unit
+`(unit_name)` @type, the tree-sitter-css convention for a number's
+unit, as are a unit's declared name and every reference to it; role
+names @constant; `@gated` @attribute; `release` moved to the lifecycle
+group. `tags.scm`: `unit_decl` as @definition.type, `role_decl` as
+@definition.constant. `locals.scm` unchanged: `unit_name` is not an
+`identifier`, so units — their own namespace in hale — never resolve
+as locals, which is the point.
+
+**Validated: not yet.** This pass's session could not run the
+tree-sitter CLI: every invocation, `--version` included, needed an
+approval the non-interactive session could not give. So `generate`,
+`test`, the corpus loop and the doc-block parse are unrun, and
+`src/parser.c` / `grammar.json` / `node-types.json` are not
+regenerated in these commits. Expected on the first run: 57/57
+corpus tests (42 + 15 new: 9 in `units.txt`, 5 in `roles_api.txt`,
+1 in `recent_additions.txt`; one existing expectation there moved to
+`qualified_name`). The
+hale corpus outside `target/` is 949 `.hl` files, up from 229. A grep
+audit found every shape of the new surface it uses and checked it
+against these rules. It found one gap (`release`) and no file needing
+`known-gaps.txt`, but files that are new since 2026-08-31 may still
+fail on older surface that only a real run will show. Of the doc
+blocks, 260 are untagged ```hale (144 docs/src + 116 spec, plus 7
+indented). Four of them write a locus member at top level and fail
+here as they would in hale: a bare `bindings { }`
+(`spec/semantics.md` lines 1998 and 2161) and a bare `closure { }`
+(`spec/semantics.md` 4228, `spec/decisions.md` 2547).
+
 ## 2026-08-12 — placement pairings, routing keys, block-shaped terminals
 
 Synced against hale `main` at 37914e5 (20 commits on from the last

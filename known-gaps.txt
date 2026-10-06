@@ -8,6 +8,12 @@
 # parses without an ERROR or MISSING node (229/229 against hale
 # 0.18.0).
 #
+# 2026-10-06 (the unit dialect / roles / api-binding sync): still
+# empty, but UNVERIFIED — that pass could not run the tree-sitter CLI
+# (STATUS.md, 2026-10-06). The corpus is now 949 files outside
+# target/. A grep audit of the new surface found nothing to list here,
+# but the first real run of the corpus loop is what decides it.
+#
 # NOTE on staleness: this claim held on 2026-08-11 and had quietly
 # stopped holding by 2026-08-31 — `keyed_by` on a topic and
 # `@budget(stack_bytes = N)` both produced ERROR nodes, because the

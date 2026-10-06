@@ -96,11 +96,11 @@ declaration.
 What gets indexed:
 
 - `@definition.type` — locus_decl, type_decl, topic_decl,
-  perspective_decl
+  perspective_decl, constitution_decl, unit_decl
 - `@definition.interface` — interface_decl
 - `@definition.function` — function_decl, ffi_function_decl
 - `@definition.method` — interface_method_sig
-- `@definition.constant` — const_decl
+- `@definition.constant` — const_decl, role_decl
 - `@reference.call` — direct + method + path call sites
 - `@reference.type` — type references in fn params, struct
   fields, locus param decls
