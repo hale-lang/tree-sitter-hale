@@ -45,9 +45,14 @@ module.exports = grammar({
   ],
 
   externals: $ => [
-    // External tokens from scanner.c are deferred until
-    // specific parse failures motivate them. See README
-    // § "Deferred to scanner.c".
+    // src/scanner.c. The magnitude of a quantity literal (`500ms`,
+    // `3bp`, GH #1076): where it ends takes lookahead the DSL can't
+    // express — `3d` is the Decimal `3` but `3day` is three days,
+    // `3e5` is a Float but `2EUR` two euros — so the scanner reads it
+    // the way hale's lexer does and the unit is an ordinary identifier
+    // after it. The other contextual keywords are still deferred; see
+    // README § "Deferred to scanner.c".
+    $._quantity_magnitude,
   ],
 
   conflicts: $ => [
@@ -126,6 +131,8 @@ module.exports = grammar({
       $.constitution_decl,
       // GH #1109: authorization vocabulary for `@gated`.
       $.role_decl,
+      // GH #1076: a node (and edge) of the unit graph.
+      $.unit_decl,
     ),
 
     // GH #1109: `role NAME [includes A, B];` — a name the deployment
@@ -143,6 +150,49 @@ module.exports = grammar({
       )),
       ';',
     ),
+
+    // GH #1076: `unit NAME;` declares a node of the unit graph;
+    // `unit NAME = FACTOR [TARGET];` also states that one NAME is
+    // FACTOR TARGETs. `unit` is CONTEXTUAL (top-level position only).
+    unit_decl: $ => seq(
+      'unit',
+      field('name', $.identifier),
+      optional(seq('=', field('factor', $.unit_factor))),
+      ';',
+    ),
+
+    // A positive integer or a ratio of two, then the unit it multiplies
+    // (none: the number one, `unit bp = 1 / 10000;`). The magnitude and
+    // its unit may be written apart (`1_000 ns`) or together (`1_000ns`,
+    // one literal token in hale); both spellings give the same tree.
+    // hale reads no `/` after a joined magnitude, so neither does this.
+    unit_factor: $ => choice(
+      seq(
+        field('numerator', $.integer_literal),
+        optional(seq('/', field('denominator', $.integer_literal))),
+        optional(field('unit', $._unit_name)),
+      ),
+      seq(
+        field('numerator', $._magnitude),
+        field('unit', $._unit_name),
+      ),
+      seq(
+        field('numerator', $.integer_literal),
+        '/',
+        field('denominator', $._magnitude),
+        field('unit', $._unit_name),
+      ),
+    ),
+
+    // A unit's name where one is REFERENCED (a quantity literal, a
+    // denomination, an equation's target, an origin, `.in(…)`). Units
+    // live in their own namespace — a local named `s` neither shadows
+    // the unit `s` nor is shadowed by it — so the reference is its own
+    // node rather than an `identifier` locals.scm would resolve.
+    _unit_name: $ => alias($.identifier, $.unit_name),
+
+    // The scanner's magnitude, surfaced as the integer it is.
+    _magnitude: $ => alias($._quantity_magnitude, $.integer_literal),
 
     // FUv0.8.2 #7: `target <name> { cap.path, ... }` — names a
     // substrate + its capability profile. Contextual, like `topic`.
@@ -1303,6 +1353,91 @@ module.exports = grammar({
           '=', 'enum', '{',
           $.enum_variant, repeat(seq(',', $.enum_variant)),
           optional(','), '}', ';'),
+      // GH #1076: a scalar of the unit dialect — a quantity, a point,
+      // an identity or a range. No generic params.
+      seq('type', field('name', $.identifier), '=', $._scalar_body),
+    ),
+
+    // `[quantity | point | distinct] BASE [in DENOMINATION] [{ CLAUSE; … }]`
+    // with at least one of the kind word, the `in` and the clause block
+    // — with none of the three it is the alias form above, which is
+    // where the shared `BASE` prefix splits (on `;`, `in` or `{`). A
+    // clause block closes the declaration, so its `;` is optional.
+    _scalar_body: $ => choice(
+      seq(
+        field('kind', $.scalar_kind),
+        field('base', $._type_expr),
+        optional(field('denomination', $.denomination)),
+        $._scalar_end,
+      ),
+      seq(
+        field('base', $._type_expr),
+        field('denomination', $.denomination),
+        $._scalar_end,
+      ),
+      seq(
+        field('base', $._type_expr),
+        field('clauses', $.scalar_clauses),
+        optional(';'),
+      ),
+    ),
+
+    _scalar_end: $ => choice(
+      seq(field('clauses', $.scalar_clauses), optional(';')),
+      ';',
+    ),
+
+    // CONTEXTUAL in hale: the kind only when a type expression follows
+    // it, so `type P = point;` aliases a type named `point` there. Here
+    // the word is a keyword right after `type X =`, which costs that
+    // one alias spelling (see STATUS.md, 2026-10-06).
+    scalar_kind: $ => choice('quantity', 'point', 'distinct'),
+
+    // A unit and a positive integer multiple of it: `in ns`, `in 100ms`,
+    // `in 100 ms` — the joined and the spaced spelling give one tree.
+    denomination: $ => seq(
+      'in',
+      choice(
+        field('unit', $._unit_name),
+        seq(field('multiple', $.integer_literal), field('unit', $._unit_name)),
+        seq(field('multiple', $._magnitude), field('unit', $._unit_name)),
+      ),
+    ),
+
+    // Each clause at most once (hale's parser says so; the grammar
+    // doesn't count). `range`, `round` and `origin` are words of this
+    // block only.
+    scalar_clauses: $ => seq(
+      '{',
+      repeat(choice($.range_clause, $.round_clause, $.origin_clause)),
+      '}',
+    ),
+
+    // `range: 0..256;` / `range: 0..=255;` — today's range expression.
+    range_clause: $ => seq('range', ':', field('range', $.range_expr), ';'),
+
+    // `round: half_even;`. One of the five rounding policies reads as
+    // the `policy` node the `or` position uses; any other name stays an
+    // identifier, since hale parses one and refuses it in the checker
+    // ("`flor` is not a rounding policy").
+    round_clause: $ => seq(
+      'round',
+      ':',
+      field('policy', choice($.policy, $.identifier)),
+      ';',
+    ),
+
+    // `origin: 273_150 mK;` / `origin: 273150mK;` / `origin: -40 mK;` —
+    // where a point's zero sits, as a count of its own denomination.
+    origin_clause: $ => seq(
+      'origin',
+      ':',
+      optional('-'),
+      choice(
+        seq(field('value', $.integer_literal), field('unit', $._unit_name)),
+        seq(field('value', $._magnitude), field('unit', $._unit_name)),
+      ),
+      ';',
     ),
 
     struct_field: $ => seq(
@@ -1879,6 +2014,7 @@ module.exports = grammar({
       $.binary_expr,
       $.unary_expr,
       $.call_expr,
+      $.conversion,
       $.field_expr,
       $.index_expr,
       $.path_expr,
@@ -1927,6 +2063,10 @@ module.exports = grammar({
         $.raise_disposition,
         $.discard_disposition,
         $.fail_disposition,
+        // GH #1076: after a narrowing (`d.in(s) or floor`, `Session(n)
+        // or clamp`, `spread / 2 or half_even`) a bare policy word says
+        // what becomes of the remainder or of the value outside.
+        $.policy,
         $._expression,
         // A substitute may be a BLOCK — `or { seen = err.kind; -1 }`
         // — because hale parses the substitute with the general
@@ -1941,6 +2081,34 @@ module.exports = grammar({
     raise_disposition:   $ => 'raise',
     discard_disposition: $ => 'discard',
     fail_disposition:    $ => seq('fail', $._expression),
+
+    // The five roundings a ratio's narrowing takes and the two a
+    // range's does. hale's parser reads the word as a bare identifier
+    // and the checker treats it as the policy only where it ENDS the
+    // `or` — a local of that name is written `or (floor)`. Here the
+    // word is a keyword right after `or`: `or (floor)` stays an
+    // identifier in parentheses, but a CALL of a fn named like a
+    // policy right after `or` (`or floor(x)`) no longer parses —
+    // see STATUS.md, 2026-10-06. `raise` keeps its own node above.
+    policy: $ => choice(
+      'floor', 'ceil', 'trunc', 'half_even', 'half_up', 'clamp', 'wrap',
+    ),
+
+    // GH #1076: `x.in(D)` — `x` at `D`'s denomination, a unit (`.in(s)`)
+    // or a multiple of one (`.in(100ms)`). `in` is a hard keyword, so
+    // this is its own form rather than a field access; hale reads it as
+    // a method call whose name is `in`. (`x.split(u)` is NOT keyed here:
+    // it is an ordinary method call, indistinguishable from
+    // `line.split(",")`, and a rule led by `split` would steal the word
+    // — the `sum` / `prod` trap.)
+    conversion: $ => prec(PREC.CALL, seq(
+      field('value', $._expression),
+      '.',
+      'in',
+      '(',
+      field('unit', choice($._unit_name, $.quantity_literal)),
+      ')',
+    )),
 
     binary_expr: $ => {
       const table = [
@@ -2111,7 +2279,7 @@ module.exports = grammar({
       $.string_literal,
       $.fstring_literal,
       $.bytes_literal,
-      $.duration_literal,
+      $.quantity_literal,
       $.time_literal,
       $.boolean_literal,
       $.nil_literal,
@@ -2124,18 +2292,28 @@ module.exports = grammar({
       /0b[01_]+/,
     )),
 
-    float_literal: $ => token(seq(
-      /[0-9][0-9_]*/,
-      '.',
-      /[0-9][0-9_]*/,
-      optional(/[eE][+-]?[0-9]+/),
-      optional(/f32|f64/),
+    // `3.14`, `1.0e-3`, and (as hale's lexer reads it) an exponent with
+    // no fraction, `3e5`: an `e` / `E` is an exponent only when a digit,
+    // or a sign and a digit, follows it — any other `e` begins a
+    // quantity literal's unit (`2EUR`), which src/scanner.c decides.
+    float_literal: $ => token(choice(
+      seq(
+        /[0-9][0-9_]*/,
+        '.',
+        /[0-9][0-9_]*/,
+        optional(/[eE][+-]?[0-9]+/),
+        optional(/f32|f64/),
+      ),
+      seq(/[0-9][0-9_]*/, /[eE][+-]?[0-9]+/),
     )),
 
-    // Decimal — `d` suffix on a numeric literal.
+    // Decimal — `d` suffix on a numeric literal. `3d` stays the Decimal
+    // `3`: the scanner declines a `d` with no word character after it,
+    // and `3day` (the unit `day`) never reaches this token.
     decimal_literal: $ => token(seq(
       /[0-9][0-9_]*/,
       optional(seq('.', /[0-9][0-9_]*/)),
+      optional(/[eE][+-]?[0-9]+/),
       'd',
     )),
 
@@ -2178,12 +2356,18 @@ module.exports = grammar({
       '"',
     )),
 
-    // 5s, 100ms, 1h30m, etc.
-    duration_literal: $ => token(seq(
-      /[0-9]+/,
-      choice('ns', 'us', 'ms', 's', 'm', 'h', 'd'),
-      repeat(seq(/[0-9]+/, choice('ns', 'us', 'ms', 's', 'm', 'h', 'd'))),
-    )),
+    // GH #1076: a quantity literal — a decimal integer written against
+    // a unit's name with no space: `500ms`, `3bp`, `1_250_000USD`,
+    // `1day`. It replaces the duration literal: the time units are the
+    // stdlib's ordinary `unit` declarations (`ns us ms s min h day`), so
+    // `m` and `d` are no longer time suffixes (`3d` is the Decimal `3`,
+    // `5m` the unit `m` the checker refuses), and the old compound
+    // `1h30m` reads, as in hale, as ONE literal of the unit `h30m`.
+    // `1_250_000 USD`, two tokens, is a parse error, as in hale.
+    quantity_literal: $ => seq(
+      field('magnitude', $._magnitude),
+      field('unit', $._unit_name),
+    ),
 
     // ISO-8601 in backticks.
     time_literal: $ => token(seq('`', /[^`]+/, '`')),

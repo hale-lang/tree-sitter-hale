@@ -1,0 +1,480 @@
+==================
+Unit declarations: bare, factor, ratio, joined and spaced (#1076)
+==================
+
+unit B;
+unit KiB = 1024 B;
+unit ms = 1_000us;
+unit bp = 1 / 10000;
+unit inch = 127/5 mm;
+unit psec = 1/1000ns;
+unit dozen = 12;
+
+---
+
+(source_file
+  (unit_decl
+    name: (identifier))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal)
+      unit: (unit_name)))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal)
+      unit: (unit_name)))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal)
+      denominator: (integer_literal)))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal)
+      denominator: (integer_literal)
+      unit: (unit_name)))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal)
+      denominator: (integer_literal)
+      unit: (unit_name)))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal))))
+
+==================
+The stdlib's time catalogue is ordinary units (#1076 U4)
+==================
+
+unit ns;
+unit us = 1_000 ns;
+unit day = 24 h;
+
+type Duration = quantity Int in ns;
+type Time = point Duration;
+
+---
+
+(source_file
+  (unit_decl
+    name: (identifier))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal)
+      unit: (unit_name)))
+  (unit_decl
+    name: (identifier)
+    factor: (unit_factor
+      numerator: (integer_literal)
+      unit: (unit_name)))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    denomination: (denomination
+      unit: (unit_name)))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)))
+
+==================
+Scalar kinds: quantity, point with origin, identity, range (#1076)
+==================
+
+type Money = quantity Int in cent;
+type Price = point Tick;
+type Celsius = point TempDelta { origin: 273_150 mK; }
+type OrderId = distinct Int;
+type Session = distinct Int { range: 0..64; }
+type Byte = Int { range: 0..256; }
+type Digit = Int { range: -5..=5; };
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    denomination: (denomination
+      unit: (unit_name)))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (named_type
+      (qualified_name
+        (identifier))))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (named_type
+      (qualified_name
+        (identifier)))
+    clauses: (scalar_clauses
+      (origin_clause
+        value: (integer_literal)
+        unit: (unit_name))))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    clauses: (scalar_clauses
+      (range_clause
+        range: (range_expr
+          start: (integer_literal)
+          end: (integer_literal)))))
+  (type_decl
+    name: (identifier)
+    base: (primitive_type)
+    clauses: (scalar_clauses
+      (range_clause
+        range: (range_expr
+          start: (integer_literal)
+          end: (integer_literal)))))
+  (type_decl
+    name: (identifier)
+    base: (primitive_type)
+    clauses: (scalar_clauses
+      (range_clause
+        range: (range_expr
+          start: (unary_expr
+            operand: (integer_literal))
+          end: (integer_literal))))))
+
+==================
+Refinements: denominations, round policies, a joined origin (#1076)
+==================
+
+type Bucket = quantity Int in 100ms { round: floor; }
+type WireStamp = Time in us { round: floor; }
+type Ledger = Money { round: half_even; }
+type Seconds = Duration in s;
+type Tenths = quantity Int in 100 ms;
+type Kelvinish = point TempDelta { origin: -273150mK; }
+type Typo = Money { round: flor; }
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    denomination: (denomination
+      multiple: (integer_literal)
+      unit: (unit_name))
+    clauses: (scalar_clauses
+      (round_clause
+        policy: (policy))))
+  (type_decl
+    name: (identifier)
+    base: (primitive_type)
+    denomination: (denomination
+      unit: (unit_name))
+    clauses: (scalar_clauses
+      (round_clause
+        policy: (policy))))
+  (type_decl
+    name: (identifier)
+    base: (named_type
+      (qualified_name
+        (identifier)))
+    clauses: (scalar_clauses
+      (round_clause
+        policy: (policy))))
+  (type_decl
+    name: (identifier)
+    base: (primitive_type)
+    denomination: (denomination
+      unit: (unit_name)))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    denomination: (denomination
+      multiple: (integer_literal)
+      unit: (unit_name)))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (named_type
+      (qualified_name
+        (identifier)))
+    clauses: (scalar_clauses
+      (origin_clause
+        value: (integer_literal)
+        unit: (unit_name))))
+  (type_decl
+    name: (identifier)
+    base: (named_type
+      (qualified_name
+        (identifier)))
+    clauses: (scalar_clauses
+      (round_clause
+        policy: (identifier)))))
+
+==================
+Quantity literals; `3d` stays Decimal, `3e5` Float (#1076)
+==================
+
+fn lits() {
+    let a = 500ms;
+    let b = 1_250_000USD * 3bp;
+    let c = 3d;
+    let e = 3e5;
+    let f = 2EUR;
+    let g = 1day;
+    let h = 1h30m;
+    let k = 1.5d;
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (quantity_literal
+          magnitude: (integer_literal)
+          unit: (unit_name)))
+      (let_stmt
+        name: (identifier)
+        value: (binary_expr
+          left: (quantity_literal
+            magnitude: (integer_literal)
+            unit: (unit_name))
+          right: (quantity_literal
+            magnitude: (integer_literal)
+            unit: (unit_name))))
+      (let_stmt
+        name: (identifier)
+        value: (decimal_literal))
+      (let_stmt
+        name: (identifier)
+        value: (float_literal))
+      (let_stmt
+        name: (identifier)
+        value: (quantity_literal
+          magnitude: (integer_literal)
+          unit: (unit_name)))
+      (let_stmt
+        name: (identifier)
+        value: (quantity_literal
+          magnitude: (integer_literal)
+          unit: (unit_name)))
+      (let_stmt
+        name: (identifier)
+        value: (quantity_literal
+          magnitude: (integer_literal)
+          unit: (unit_name)))
+      (let_stmt
+        name: (identifier)
+        value: (decimal_literal)))))
+
+==================
+Conversions: `.in(…)`, `.split(…)`, casts, and the `or` policies (#1076)
+==================
+
+fn convert(d: Duration, n: Int) {
+    let secs = d.in(s) or floor;
+    let whole = d.in(s) or 0;
+    let fine = d.in(100ms) or half_even;
+    let (sec, rem) = d.split(s);
+    let sess = Session(n) or clamp;
+    let local = d.in(s) or (floor);
+    let handled = d.in(s) or divisor(err);
+    let half = 1500ms.in(ms) or floor;
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (conversion
+            value: (identifier)
+            unit: (unit_name))
+          disposition: (policy)))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (conversion
+            value: (identifier)
+            unit: (unit_name))
+          disposition: (integer_literal)))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (conversion
+            value: (identifier)
+            unit: (quantity_literal
+              magnitude: (integer_literal)
+              unit: (unit_name)))
+          disposition: (policy)))
+      (let_stmt
+        names: (let_tuple_names
+          (identifier)
+          (identifier))
+        value: (call_expr
+          callee: (field_expr
+            object: (identifier)
+            member: (identifier))
+          (identifier)))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (call_expr
+            callee: (identifier)
+            (identifier))
+          disposition: (policy)))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (conversion
+            value: (identifier)
+            unit: (unit_name))
+          disposition: (parenthesized
+            (identifier))))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (conversion
+            value: (identifier)
+            unit: (unit_name))
+          disposition: (call_expr
+            callee: (identifier)
+            (identifier))))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (conversion
+            value: (quantity_literal
+              magnitude: (integer_literal)
+              unit: (unit_name))
+            unit: (unit_name))
+          disposition: (policy))))))
+
+==================
+Casts are calls; time literals flow into Duration and Time (#1076)
+==================
+
+const PAUSE: Duration = Duration(2s);
+
+fn stamp(n: Int) -> Time {
+    return Time(n * 1ns);
+}
+
+---
+
+(source_file
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (call_expr
+      callee: (identifier)
+      (quantity_literal
+        magnitude: (integer_literal)
+        unit: (unit_name))))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (return_stmt
+        (call_expr
+          callee: (identifier)
+          (binary_expr
+            left: (identifier)
+            right: (quantity_literal
+              magnitude: (integer_literal)
+              unit: (unit_name))))))))
+
+==================
+The dialect's words stay identifiers outside their one position
+==================
+
+fn wrap(unit: Int, point: Int) -> Int {
+    let floor = std::math::floor(unit);
+    let range = point;
+    return floor + range;
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (path_expr
+            object: (path_expr
+              object: (identifier)
+              member: (identifier))
+            member: (identifier))
+          (identifier)))
+      (let_stmt
+        name: (identifier)
+        value: (identifier))
+      (return_stmt
+        (binary_expr
+          left: (identifier)
+          right: (identifier))))))
+
+==================
+Units and roles inside a module
+==================
+
+module money {
+    unit cent;
+    unit USD = 100 cent;
+    role teller;
+}
+
+---
+
+(source_file
+  (module_decl
+    name: (identifier)
+    (unit_decl
+      name: (identifier))
+    (unit_decl
+      name: (identifier)
+      factor: (unit_factor
+        numerator: (integer_literal)
+        unit: (unit_name)))
+    (role_decl
+      name: (identifier))))
