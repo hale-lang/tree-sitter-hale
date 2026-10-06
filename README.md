@@ -61,10 +61,12 @@ Hale @ffi wrapper
 API live (Parser / Tree / Node / Query). Three query files
 ship: highlights.scm, tags.scm, locals.scm.
 
-`src/scanner.c` (2026-10-06) lexes one token the DSL can't: a
+`src/scanner.c` (2026-10-06) lexes two tokens the DSL can't: a
 quantity literal's magnitude, whose end needs lookahead (`3d` is
 a Decimal, `3day` a quantity of days; `3e5` a Float, `2EUR` a
-quantity). scanner.c for the trickiest contextual keywords
+quantity), and an f-string, whose `{…}` interpolations nest and
+may hold a quoted string (`f"t = {(1, "two")}"`), so its end
+needs a depth count. scanner.c for the trickiest contextual keywords
 (`mode`, `captures`, `inline`, `fail`, `raise`, `with`,
 `fallible`) is still deferred until specific parse failures
 motivate it — the grammar treats them as keywords with

@@ -337,6 +337,11 @@
   "@" @attribute
   "no_panic" @attribute)
 
+; GH #265: `@secret` on a parameter taints it.
+(secret_annotation
+  "@" @attribute
+  "secret" @attribute)
+
 ; GH #265: the `@no_*` effect-assert family — documented sugar over
 ; `@effects(none: {...})`, enumerated by the compiler's
 ; `effect_assert_for()`. The grammar folds all six into one token, so

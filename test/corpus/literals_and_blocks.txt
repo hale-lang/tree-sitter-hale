@@ -1,0 +1,152 @@
+==================
+f-string interpolation holding a quoted string (2026-10-06)
+==================
+
+fn show() {
+    println(f"tuple = {(1, "two", 3.5)}");
+    println(f"{{literal}} {m.get("k")} \{ {f"{x}"} {{ {a}");
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (block
+      (expr_stmt
+        (call_expr
+          callee: (identifier)
+          (fstring_literal)))
+      (expr_stmt
+        (call_expr
+          callee: (identifier)
+          (fstring_literal))))))
+
+==================
+String literal spanning lines (2026-10-06)
+==================
+
+const PROPOSED: String = "holes board
+  line two \"quoted\"
+";
+
+---
+
+(source_file
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (string_literal)))
+
+==================
+fallible(E) on an interface method signature (2026-10-06)
+==================
+
+interface Store {
+    fn put(k: String) -> Int fallible(E);
+    fn close() fallible(E);
+}
+
+---
+
+(source_file
+  (interface_decl
+    name: (identifier)
+    (interface_method_sig
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (primitive_type))
+      return_type: (primitive_type)
+      (fallible_marker
+        payload_type: (named_type
+          (qualified_name
+            (identifier)))))
+    (interface_method_sig
+      name: (identifier)
+      (fallible_marker
+        payload_type: (named_type
+          (qualified_name
+            (identifier)))))))
+
+==================
+@secret on a parameter (2026-10-06)
+==================
+
+fn salted(@secret password: String, salt: Bytes) -> Bytes { salt }
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      (secret_annotation)
+      name: (identifier)
+      type: (primitive_type))
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (identifier))))
+
+==================
+Block expression: a field default, a let value, a match arm; a block statement (2026-10-06)
+==================
+
+type Pair {
+    shadowed: Slot = {
+        let OrderId = bump;
+        Slot { }
+    };
+}
+
+fn f() -> Int {
+    let x = { let a = 1; a };
+    { g(); }
+    match x { 1 -> { 2 }, _ -> 3 }
+}
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    (struct_field
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier)))
+      default: (block
+        (let_stmt
+          name: (identifier)
+          value: (identifier))
+        (struct_literal
+          name: (qualified_name
+            (identifier))))))
+  (function_decl
+    name: (identifier)
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (block
+          (let_stmt
+            name: (identifier)
+            value: (integer_literal))
+          (identifier)))
+      (block
+        (expr_stmt
+          (call_expr
+            callee: (identifier))))
+      (match_stmt
+        scrutinee: (identifier)
+        (match_arm
+          pattern: (literal_pattern
+            (integer_literal))
+          body: (block
+            (integer_literal)))
+        (match_arm
+          pattern: (wildcard_pattern)
+          body: (integer_literal))))))

@@ -53,6 +53,12 @@ module.exports = grammar({
     // after it. The other contextual keywords are still deferred; see
     // README § "Deferred to scanner.c".
     $._quantity_magnitude,
+    // An f-string, `f"…{expr}…"`, as one token. hale's `lex_fstring`
+    // reads an interpolation to its depth-matched `}`, and a `"` inside
+    // the braces does not end the literal (`f"t = {(1, "two")}"`); a
+    // regular expression can't count the depth, so the scanner does.
+    // The body stays opaque text, as it was.
+    $.fstring_literal,
   ],
 
   conflicts: $ => [
@@ -321,6 +327,9 @@ module.exports = grammar({
       optional($._param_list),
       ')',
       optional(seq('->', field('return_type', $._type_expr))),
+      // GH #732: the contextual `fallible(E)` marker a fn declaration
+      // takes — `fn put(k: String) -> Int fallible(E);`.
+      optional($.fallible_marker),
       ';',
     ),
 
@@ -1725,6 +1734,8 @@ module.exports = grammar({
 
     hot_annotation: $ => seq('@', 'hot'),
 
+    secret_annotation: $ => seq('@', 'secret'),
+
     fallible_marker: $ => seq(
       'fallible',
       '(',
@@ -1737,7 +1748,10 @@ module.exports = grammar({
       repeat(seq(',', $.parameter)),
     ),
 
+    // GH #265: `@secret name: T` taints the parameter. It is the one
+    // attribute hale's `parse_param` reads.
     parameter: $ => seq(
+      optional($.secret_annotation),
       field('name', $.identifier),
       ':',
       field('type', $._type_expr),
@@ -1774,7 +1788,10 @@ module.exports = grammar({
       $.recovery_stmt,
       $.violate_stmt,
       $.fail_stmt,
-      $.block,
+      // A statement that starts with `{` is a nested block, never an
+      // expression — hale's `parse_stmt` — so it wins over the block
+      // expression wherever both fit (`{ {x} }`, `{ a } (b)`).
+      prec(1, $.block),
       $.expr_stmt,
     ),
 
@@ -1904,7 +1921,8 @@ module.exports = grammar({
       field('pattern', $._pattern),
       optional(seq('if', field('guard', $._expression))),
       '->',
-      field('body', choice($._expression, $.block)),
+      // A block body is an `_expression` (see there).
+      field('body', $._expression),
     ),
 
     _pattern: $ => choice(
@@ -2030,6 +2048,12 @@ module.exports = grammar({
       // if_stmt — the two overlap for a whole `match … { … }`, so
       // the pair is a declared conflict.
       $.match_expr,
+      // A block is a primary expression in hale (`parse_primary` takes
+      // `{` as `Expr::Block`): `let x = { …; v };`, a field default
+      // `= { …; Slot { } }`, an `or { … }` substitute. At the start of
+      // a statement `{` is a block STATEMENT, as in hale's
+      // `parse_stmt`; see `_statement`.
+      $.block,
       $.parenthesized,
       $.self_expr,
       $.identifier,
@@ -2064,14 +2088,10 @@ module.exports = grammar({
         // or clamp`, `spread / 2 or half_even`) a bare policy word says
         // what becomes of the remainder or of the value outside.
         $.policy,
+        // Includes a BLOCK substitute, `or { seen = err.kind; -1 }`:
+        // hale parses the substitute with the general expression
+        // parser, and a block is an expression there.
         $._expression,
-        // A substitute may be a BLOCK — `or { seen = err.kind; -1 }`
-        // — because hale parses the substitute with the general
-        // expression parser, and a block is an expression there.
-        // Modeled here only in this position: block-as-expression
-        // everywhere would collide with struct literals, and no
-        // hale source needs the general form.
-        $.block,
       )),
     )),
 
@@ -2323,31 +2343,19 @@ module.exports = grammar({
       seq('"""', repeat(choice(/[^"]/, /"[^"]/, /""[^"]/)), '"""'),
       // Raw string: r"..." — no escape processing.
       seq('r"', repeat(/[^"]/), '"'),
-      // Regular string with escapes.
+      // Regular string with escapes. hale's `lex_string` runs to the
+      // next unescaped `"`, newlines included: a string may span lines.
       seq('"', repeat(choice(
-        /[^"\\\n]/,
+        /[^"\\]/,
         seq('\\', /./),
       )), '"'),
     )),
 
+    // Same body as a string (`lex_bytes`), newlines included.
     bytes_literal: $ => token(seq(
       'b"',
       repeat(choice(
-        /[^"\\\n]/,
-        seq('\\', /./),
-      )),
-      '"',
-    )),
-
-    // f-strings need parser-level handling for the interpolated
-    // expressions, but we can token-ize the literal frame.
-    // For v0, treat fstring_literal as a single token (no
-    // interpolation extraction — the body is opaque text).
-    // Polish-phase upgrade: extract `{expr}` sub-trees.
-    fstring_literal: $ => token(seq(
-      'f"',
-      repeat(choice(
-        /[^"\\\n]/,
+        /[^"\\]/,
         seq('\\', /./),
       )),
       '"',
