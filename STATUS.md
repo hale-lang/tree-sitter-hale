@@ -5,14 +5,16 @@ Status as of the initial grammar.js + @ffi wrapper commit
 
 ## 2026-10-06 — the unit dialect, roles and `@gated`, the api binding
 
-Synced against hale `main` at 89d0e7920. The checkout read was
-8de99d6c9, 15 commits behind it and identical in `spec/grammar.ebnf`
-and `crates/hale-syntax`; the 15 add three lifecycle fixtures and
-`spec/runtime.md` prose. The last pass (2026-08-31, hale 0.18.0 at
+Synced against hale `main` at 89d0e7920. The rules were written
+reading 8de99d6c9, 15 commits behind it and identical in
+`spec/grammar.ebnf` and `crates/hale-syntax` (the 15 add three
+lifecycle fixtures and `spec/runtime.md` prose); everything under
+"Validated" ran against 89d0e7920 itself. The last pass (2026-08-31, hale 0.18.0 at
 40f0428e) left no entry here; c863c39's message is its record. The
 ebnf grew 234 lines since, and all of it is modeled:
 
-- **A scanner — `src/scanner.c`, the repo's first.** One token: the
+- **A scanner — `src/scanner.c`, the repo's first.** Two tokens; the
+  f-string is under "Found by the first run" below. The first is the
   MAGNITUDE of a quantity literal. Where `500ms` splits takes
   lookahead the DSL has no word for: `3d` is the Decimal `3` but
   `3day` is a day count, `3e5` a Float but `2EUR` two euros, `0x1F`
@@ -77,6 +79,32 @@ ebnf grew 234 lines since, and all of it is modeled:
   never modeled; 13 corpus files use it now. Found by the audit below,
   not the ebnf diff.
 
+Found by the first run of the corpus (13 files failed, five
+constructs) and of the doc blocks (two real gaps):
+
+- **f-strings** — `fstring_literal` is now the scanner's second token,
+  mirroring `lex_fstring`: an interpolation runs to its depth-matched
+  `}`, and a bare `"` inside it doesn't end the literal, so
+  `f"tuple = {(1, "two", 3.5)}"` is one token. The body stays opaque.
+- **Strings span lines** — `string_literal` and `bytes_literal`, as
+  `lex_string` / `lex_bytes` read them.
+- **`fallible(E)` on an interface method** (#732) —
+  `interface_method_sig` takes `fallible_marker`.
+- **`@secret` on a parameter** (#265) — `secret_annotation`, the one
+  attribute `parse_param` reads; @attribute in `highlights.scm`.
+- **A block is an expression** — in `_expression`, as in hale's
+  `parse_primary`: a field default `= { …; Slot { } }`, a `let` value, a
+  match arm, an `or` substitute. A statement led by `{` stays a block
+  statement (`prec(1)` in `_statement`), as `parse_stmt` reads it.
+  `match_arm` and `or_disposition_expr` lost their separate `block`
+  alternative; their trees are unchanged.
+- **The scrutinee-less match** — `match { n < 10 -> a, else -> b }`,
+  arms `cond_match_arm` (`condition`, `body`; `else` has no condition).
+  `match_stmt` and `match_expr` share one body.
+- The three conflicts `generate` called unnecessary
+  (`_type_expr`/`_expression`, `qualified_name`/`path_expr`,
+  `named_type`/`_expression`) are gone; it reports no conflict now.
+
 The cost, and why: hale's dialect words are contextual. tree-sitter
 gets that for free wherever only an identifier is valid; a keyword only
 steals where an identifier is valid in the same state. Three such
@@ -99,25 +127,27 @@ group. `tags.scm`: `unit_decl` as @definition.type, `role_decl` as
 `identifier`, so units — their own namespace in hale — never resolve
 as locals, which is the point.
 
-**Validated: not yet.** This pass's session could not run the
-tree-sitter CLI: every invocation, `--version` included, needed an
-approval the non-interactive session could not give. So `generate`,
-`test`, the corpus loop and the doc-block parse are unrun, and
-`src/parser.c` / `grammar.json` / `node-types.json` are not
-regenerated in these commits. Expected on the first run: 57/57
-corpus tests (42 + 15 new: 9 in `units.txt`, 5 in `roles_api.txt`,
-1 in `recent_additions.txt`; one existing expectation there moved to
-`qualified_name`). The
-hale corpus outside `target/` is 949 `.hl` files, up from 229. A grep
-audit found every shape of the new surface it uses and checked it
-against these rules. It found one gap (`release`) and no file needing
-`known-gaps.txt`, but files that are new since 2026-08-31 may still
-fail on older surface that only a real run will show. Of the doc
-blocks, 260 are untagged ```hale (144 docs/src + 116 spec, plus 7
-indented). Four of them write a locus member at top level and fail
-here as they would in hale: a bare `bindings { }`
-(`spec/semantics.md` lines 1998 and 2161) and a bare `closure { }`
-(`spec/semantics.md` 4228, `spec/decisions.md` 2547).
+Validated: `tree-sitter generate` (CLI 0.26.9, ABI 14) with no
+conflict reported; 63/63 corpus tests (42 + 21 new: 9 in
+`units.txt`, 5 in `roles_api.txt`, 1 in `recent_additions.txt`, 6 in
+`literals_and_blocks.txt`); 952/952 hale `.hl` files outside
+`target/` parse with no ERROR or MISSING node, `known-gaps.txt`
+empty. Doc blocks: of the 260 complete untagged ```hale blocks in
+`docs/src` and `spec`, 197 parse and 63 fail. The first run failed 64;
+two of those were grammar gaps, both fixed above
+(`docs/src/basics/fallible.md` block 3, interface `fallible`, now
+parses; `spec/semantics.md` block 2, the scrutinee-less match, still
+fails as a top-level `let`). The 63 that fail are text hale refuses
+too, all in `spec/`, for a hale-side `hale,fragment` tag or fix:
+statements at top level (37 blocks) or locus members at top level
+(12, the four predicted among them), `#` comments (`forms.md`), `…` / `...` elisions, `loop`,
+`or ()`, a `nats(...)` transport, `;` between adapter inits, and an
+API signature listing (`types.md` block 4). All three query files
+load and run over `tests/hale/unit_quantities_test.hl` and
+`crates/hale-stdlib/hl/time.hl`. `tree-sitter highlight` was not
+run: CLI 0.26 reads a language's config from `tree-sitter.json`,
+which this repo doesn't have (package.json's `"tree-sitter"` section
+is the older form).
 
 ## 2026-08-12 — placement pairings, routing keys, block-shaped terminals
 

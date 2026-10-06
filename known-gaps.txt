@@ -9,10 +9,9 @@
 # 0.18.0).
 #
 # 2026-10-06 (the unit dialect / roles / api-binding sync): still
-# empty, but UNVERIFIED — that pass could not run the tree-sitter CLI
-# (STATUS.md, 2026-10-06). The corpus is now 949 files outside
-# target/. A grep audit of the new surface found nothing to list here,
-# but the first real run of the corpus loop is what decides it.
+# empty, and verified — all 952 files outside target/ of hale main at
+# 89d0e7920 parse. The first run failed 13, on five constructs this
+# sync then modeled (STATUS.md, 2026-10-06).
 #
 # NOTE on staleness: this claim held on 2026-08-11 and had quietly
 # stopped holding by 2026-08-31 — `keyed_by` on a topic and

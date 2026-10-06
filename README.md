@@ -48,14 +48,12 @@ v0 grammar mature, written against hale `main` of 2026-10-06
 (89d0e7920): the unit dialect (`unit` declarations, quantity /
 point / identity / range types, quantity literals, `.in(…)`, the
 `or` policies — GH #1076), roles and `@gated` (#1109), the api
-binding (#1106), and qualified binding / perspective names. That
-pass could not run the tree-sitter CLI, so its generate / test /
-corpus run is pending — see [`STATUS.md`](./STATUS.md),
-2026-10-06. The last verified run (2026-08-31, tree-sitter 0.26.9,
-hale 0.18.0): every `.hl` file in the hale repo parsed, all 229
-of them, with no ERROR or MISSING node, and 42/42 corpus tests
-passed. [`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is
-empty.
+binding (#1106), and qualified binding / perspective names.
+Verified 2026-10-06 (tree-sitter 0.26.9, hale 89d0e7920): every
+`.hl` file in the hale repo outside `target/` parses, all 952 of
+them, with no ERROR or MISSING node, and 63/63 corpus tests pass —
+see [`STATUS.md`](./STATUS.md), 2026-10-06.
+[`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is empty.
 Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query
 API live (Parser / Tree / Node / Query). Three query files
