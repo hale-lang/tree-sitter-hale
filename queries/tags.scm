@@ -23,8 +23,8 @@
 (locus_decl
   name: (identifier) @name) @definition.type
 
-; type declaration (covers struct, alias, and enum forms via
-; the grammar's three productions)
+; type declaration (covers struct, alias, enum, and — GH #1076 — the
+; scalar forms: quantity, point, identity, range)
 (type_decl
   name: (identifier) @name) @definition.type
 
@@ -44,6 +44,17 @@
 ; symbol picker should reach, like any other top-level name.
 (constitution_decl
   name: (identifier) @name) @definition.type
+
+; unit declaration (GH #1076) — `unit USD = 100 cent;`. A unit names a
+; dimension, read where a type is (`quantity Int in cent`), so it sits
+; with the type definitions; units are seed-global, never mangled.
+(unit_decl
+  name: (identifier) @name) @definition.type
+
+; role declaration (GH #1109) — authorization vocabulary `@gated(role:
+; R)` names; a named value rather than a type.
+(role_decl
+  name: (identifier) @name) @definition.constant
 
 ; module declaration (rarely used; reserved syntax)
 (module_decl

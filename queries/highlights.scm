@@ -41,7 +41,24 @@
   ; GH #409: a named, composable claimset.
   "constitution"
   "extends"
+  ; GH #1109: authorization vocabulary (`role` itself is listed with
+  ; the transport keywords — it is also `unix(…, role: listen)`).
+  "includes"
+  ; GH #1076: the unit dialect — a unit declaration, and a scalar
+  ; type's clause names.
+  "unit"
+  "range"
+  "round"
+  "origin"
 ] @keyword
+
+; GH #1076: the kind of a scalar type (`type Money = quantity Int in
+; cent;`) — a modifier on its base, like `tier` / `serves` on a locus.
+(scalar_kind) @keyword.modifier
+
+; GH #1076: a narrowing's policy — `d.in(s) or floor`, `Session(n) or
+; clamp`, and a type's `{ round: half_even; }`.
+(policy) @keyword
 
 ; GH #382 claims surface
 [
@@ -124,6 +141,7 @@
 [
   "birth"
   "accept"
+  "release"
   "run"
   "drain"
   "dissolve"
@@ -213,6 +231,15 @@
   "intra_machine"
   "cross_machine"
   "zero_copy"
+  ; GH #1106 / #1135 / #1137: the api binding and its clauses.
+  "api"
+  "watch_bound"
+  "on_watch_full"
+  "on_unauthorized"
+  "roles"
+  "http"
+  "principals"
+  "serve"
 ] @keyword
 
 ; Statement / expression keywords
@@ -235,7 +262,6 @@
   "yield"
   "terminate"
   "reperspective"
-  "release"
 ] @keyword
 
 ; Recovery primitives
@@ -311,6 +337,11 @@
   "@" @attribute
   "no_panic" @attribute)
 
+; GH #265: `@secret` on a parameter taints it.
+(secret_annotation
+  "@" @attribute
+  "secret" @attribute)
+
 ; GH #265: the `@no_*` effect-assert family — documented sugar over
 ; `@effects(none: {...})`, enumerated by the compiler's
 ; `effect_assert_for()`. The grammar folds all six into one token, so
@@ -321,6 +352,14 @@
 (deterministic_annotation
   "@" @attribute
   "deterministic" @attribute)
+
+; GH #1109: `@gated(role: R)` on a handler fn, an `expose` or a
+; `publish`. The role reads as the named value it is, as it does where
+; `role R;` declares it.
+(gated_annotation
+  "@" @attribute
+  "gated" @attribute
+  role: (identifier) @constant)
 
 ; F.32-2 v0.2 (2026-05-25): @locality(L1|L2|L3|any). Tier
 ; names get constant.builtin so they read as named values
@@ -354,6 +393,19 @@
 (constitution_decl name: (identifier) @type)
 (constitution_decl base: (identifier) @type)
 (adopt_entry constitution: (identifier) @type)
+
+; GH #1076: a unit names a dimension, the namespace a denomination
+; (`in cent`) reads in type position, so its name and every reference
+; to it — a quantity literal's suffix, an equation's target, a
+; denomination, an origin, `.in(…)` — share @type. The tree-sitter-css
+; convention for a number's unit, and distinct from the magnitude's
+; @number.
+(unit_decl name: (identifier) @type)
+(unit_name) @type
+
+; GH #1109: a role is deployment vocabulary, a named value.
+(role_decl name: (identifier) @constant)
+(role_decl include: (identifier) @constant)
 
 ; Generic params
 (generic_param name: (identifier) @type)
@@ -411,7 +463,8 @@
 (integer_literal) @number
 (float_literal) @number.float
 (decimal_literal) @number
-(duration_literal) @number
+; A quantity literal's magnitude is an integer_literal node (@number
+; above); its unit is a unit_name (@type, under Types).
 (time_literal) @string.special
 (boolean_literal) @constant.builtin
 (nil_literal) @constant.builtin

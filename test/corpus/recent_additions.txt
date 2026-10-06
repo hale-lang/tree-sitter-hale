@@ -427,14 +427,16 @@ locus RouterV1 : serves Router, tier 2 {
     (identifier)
     (locus_annotations
       (serves_clause
-        (identifier))
+        (qualified_name
+          (identifier)))
       (locus_annotation
         (integer_literal)))
     (lifecycle_decl
       (block
         (reperspective_stmt
           (identifier)
-          (identifier))))
+          (qualified_name
+            (identifier)))))
     (lifecycle_decl
       (block
         (terminate_stmt)))))
@@ -1001,3 +1003,40 @@ fn no_block_points() {
         (call_expr
           callee: (identifier)
           (string_literal))))))
+
+==================
+`release` lifecycle hook; a module body's declarations (2026-10-06)
+==================
+
+module shapes {
+    type Corner { x: Int; }
+    const ORIGIN: Int = 0;
+}
+
+locus Pool {
+    release (c: Kid) { }
+}
+
+---
+
+(source_file
+  (module_decl
+    name: (identifier)
+    (type_decl
+      name: (identifier)
+      (struct_field
+        name: (identifier)
+        type: (primitive_type)))
+    (const_decl
+      name: (identifier)
+      type: (primitive_type)
+      value: (integer_literal)))
+  (locus_decl
+    name: (identifier)
+    (lifecycle_decl
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      (block))))

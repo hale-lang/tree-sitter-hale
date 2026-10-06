@@ -44,25 +44,34 @@ one tool: it's the shared substrate.
 
 ## Status
 
-v0 grammar mature: **every `.hl` file in the hale repo parses**
-— all 225 of them, no ERROR or MISSING node — and 41/41 corpus
-tests pass. Re-verified 2026-08-12 with tree-sitter 0.26.9
-against hale `main`, current through the placement pairings
-(replica-sharded delivery, pool affinity).
+v0 grammar mature, written against hale `main` of 2026-10-06
+(89d0e7920): the unit dialect (`unit` declarations, quantity /
+point / identity / range types, quantity literals, `.in(…)`, the
+`or` policies — GH #1076), roles and `@gated` (#1109), the api
+binding (#1106), and qualified binding / perspective names.
+Verified 2026-10-06 (tree-sitter 0.26.9, hale 89d0e7920): every
+`.hl` file in the hale repo outside `target/` parses, all 952 of
+them, with no ERROR or MISSING node, and 63/63 corpus tests pass —
+see [`STATUS.md`](./STATUS.md), 2026-10-06.
 [`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is empty.
 Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query
 API live (Parser / Tree / Node / Query). Three query files
 ship: highlights.scm, tags.scm, locals.scm.
 
-scanner.c for the trickiest contextual keywords (`mode`,
-`captures`, `inline`, `fail`, `raise`, `with`, `fallible`) is
-deferred until specific parse failures motivate it — the
-grammar treats them as keywords with context-based parsing,
-which works across the whole corpus today. `sum` / `prod` used
-to be on that list and were the counter-example: a rule led by
-the keyword stole the word from every local named `sum`, so
-they now parse as ordinary calls.
+`src/scanner.c` (2026-10-06) lexes two tokens the DSL can't: a
+quantity literal's magnitude, whose end needs lookahead (`3d` is
+a Decimal, `3day` a quantity of days; `3e5` a Float, `2EUR` a
+quantity), and an f-string, whose `{…}` interpolations nest and
+may hold a quoted string (`f"t = {(1, "two")}"`), so its end
+needs a depth count. scanner.c for the trickiest contextual keywords
+(`mode`, `captures`, `inline`, `fail`, `raise`, `with`,
+`fallible`) is still deferred until specific parse failures
+motivate it — the grammar treats them as keywords with
+context-based parsing, which works across the whole corpus
+today. `sum` / `prod` used to be on that list and were the
+counter-example: a rule led by the keyword stole the word from
+every local named `sum`, so they now parse as ordinary calls.
 
 See [`STATUS.md`](./STATUS.md) for the verification details
 and [`integrations/`](./integrations/) for per-editor setup
@@ -81,8 +90,9 @@ npx tree-sitter parse FILE   # parses a .hl file, prints tree
 
 The generated `src/parser.c` IS checked into the repo so
 consumers don't need the tree-sitter CLI installed — they
-just compile `parser.c` (and `scanner.c` when it exists)
-against `libtree-sitter` (system install).
+just compile `parser.c` and the hand-written `scanner.c`
+against `libtree-sitter` (system install). Every binding
+here (and `hale.toml`'s `csrc`) lists both.
 
 ## Hale-side wrapper
 
@@ -135,8 +145,10 @@ consuming package.
 Matches [`spec/grammar.ebnf`](../../hale/spec/grammar.ebnf)
 section numbering as closely as tree-sitter's DSL admits:
 
-1. Top level — `program`, `import_decl`, `top_decl`
-2. Locus declaration — `locus_decl`, `locus_member`
+1. Top level — `program`, `import_decl`, `top_decl` (incl.
+   `role_decl` and `unit_decl` / `unit_factor`)
+2. Locus declaration — `locus_decl`, `locus_member`, and in
+   `bindings { }` the `api_binding`
 3. Params — `params_block`, `param_decl`
 4. Contract — `contract_block`, `contract_member`
 5. Bus — `bus_block`, `bus_subscribe`, `bus_publish`
@@ -146,16 +158,20 @@ section numbering as closely as tree-sitter's DSL admits:
 9. Failure handler — `failure_decl`
 10. Closures — `closure_decl`
 11. Perspectives — `perspective_decl`
-12. Types — `type_decl`
+12. Types — `type_decl`, incl. the unit dialect's scalar form
+    (`scalar_kind`, `denomination`, `scalar_clauses`)
 13. Type expressions — `type_expr`
-14. Function decls — `function_decl`, `fallible_marker`
+14. Function decls — `function_decl`, `fallible_marker`, the
+    decorators (`gated_annotation` among them)
 15. Statements — `let_stmt`, `assign_stmt`, `send_stmt`,
     `if_stmt`, `match_stmt`, `for_stmt`, `while_stmt`,
     `return_stmt`, `break_stmt`, `continue_stmt`,
     `yield_stmt`, `recovery_stmt`, `violate_stmt`,
     `fail_stmt`, `expr_stmt`
 16. Expressions — precedence-ordered per
-    [`spec/precedence.md`](../../hale/spec/precedence.md)
+    [`spec/precedence.md`](../../hale/spec/precedence.md),
+    incl. `quantity_literal`, `conversion` (`x.in(u)`) and the
+    `or` disposition's `policy`
 
 ## Deferred to scanner.c
 

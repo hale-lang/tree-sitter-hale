@@ -3,6 +3,152 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-10-06 — the unit dialect, roles and `@gated`, the api binding
+
+Synced against hale `main` at 89d0e7920. The rules were written
+reading 8de99d6c9, 15 commits behind it and identical in
+`spec/grammar.ebnf` and `crates/hale-syntax` (the 15 add three
+lifecycle fixtures and `spec/runtime.md` prose); everything under
+"Validated" ran against 89d0e7920 itself. The last pass (2026-08-31, hale 0.18.0 at
+40f0428e) left no entry here; c863c39's message is its record. The
+ebnf grew 234 lines since, and all of it is modeled:
+
+- **A scanner — `src/scanner.c`, the repo's first.** Two tokens; the
+  f-string is under "Found by the first run" below. The first is the
+  MAGNITUDE of a quantity literal. Where `500ms` splits takes
+  lookahead the DSL has no word for: `3d` is the Decimal `3` but
+  `3day` is a day count, `3e5` a Float but `2EUR` two euros, `0x1F`
+  a radix integer. The scanner decides exactly as hale's `lex_number`
+  does and hands everything else back to the internal lexer; the unit
+  after it is an ordinary identifier, so a highlighter can colour the
+  two halves apart. Every binding compiles it now (Rust, Node,
+  Python, Swift, Go, `hale.toml`; the Makefile already globbed
+  `src/*.c`). The contextual keywords stay deferred.
+- **Quantity literals (#1076)** — `quantity_literal`, fields
+  `magnitude` (an `integer_literal`) and `unit` (a `unit_name`),
+  replacing `duration_literal`. Changes existing trees: every
+  `500ms` / `5s` was a leaf `(duration_literal)`. `m` and `d` are no
+  longer time suffixes and the compound `1h30m` reads, as in hale, as
+  one literal of the unit `h30m` (the checker refuses it). `3d` stays
+  `decimal_literal`; `float_literal` gains the exponent-only `3e5`
+  and `decimal_literal` an exponent (`1e5d`), both as hale lexes them.
+- **`unit` declarations (#1076)** — `unit_decl` (`name`, `factor`),
+  the factor a `unit_factor` (`numerator`, `denominator`, `unit`).
+  `1_000 ns` and `1_000ns` give one tree; so do the two spellings of a
+  denomination and of an origin.
+- **Scalar types (#1076)** — a fourth `type_decl` form, fields `kind`
+  (`scalar_kind`: quantity / point / distinct), `base`, `denomination`
+  (`denomination`: `multiple`, `unit`) and `clauses` (`scalar_clauses`
+  of `range_clause`, `round_clause`, `origin_clause`). It splits from
+  the alias form on the token after the base (`;`, `in` or `{`); the
+  alias, struct and enum trees are unchanged.
+- **`x.in(D)` (#1076)** — `conversion` (`value`, `unit`). `in` is a
+  hard keyword, so the form steals nothing. `x.split(u)` is NOT a
+  `conversion` and stays a `call_expr`: hale parses it as an ordinary
+  method call, it is indistinguishable from `line.split(",")`, and a
+  rule led by `split` would reserve the word after `.` — the
+  `sum` / `prod` trap again.
+- **Policies (#1076)** — `policy`, for `floor` `ceil` `trunc`
+  `half_even` `half_up` `clamp` `wrap`, as an `or` disposition
+  (`d.in(s) or floor`) and as a `round:` value. Any other `round:`
+  name stays an identifier, as hale parses it and the checker refuses
+  it; `or raise` keeps `raise_disposition`; `or <value>` /
+  `or handler(err)` stay expressions.
+- **Roles and gates (#1109)** — `role_decl` (`name`, `include`) and
+  `gated_annotation` (`role`): a fn decorator, before an `expose`
+  (only — hale refuses it on a `consume`) and before a `publish`.
+  `interface_method_sig` now takes `fn_decorators`, so a
+  perspective's `@gated fn route(…) -> T;` parses as it does in
+  hale; the checker refuses it.
+- **The api binding (#1106, #1135, #1137)** — `api_binding` (`path`,
+  `api_kwarg`s with `key` / `value`, `api_http` with `host` / `port` /
+  `principals`, `api_serve` with `param`s) beside `binding_entry` in
+  `bindings { }`.
+- **Qualified names (#527 B6, #724, #1034)** — a binding's topic, a
+  codec, an adapter transport, `serves P`, `perspective(P)` and
+  `reperspective … as Impl` take a `qualified_name`. Changes existing
+  trees: each was a bare `(identifier)` and is now
+  `(qualified_name (identifier))`, even with one segment. Several
+  `dna/` files bind `dna::Topic: nats::NatsAdapter { }`, which was an
+  ERROR before this pass.
+- **`module` bodies exclude `target`** (#901): `_module_member`. hale
+  refuses one at any depth. `type` / `const` stay accepted in a locus
+  body, since hale's parser reads them so the checker can refuse them
+  as a located error.
+- **`release (c: Kid) { … }`** — the lifecycle hook since 2026-05-30,
+  never modeled; 13 corpus files use it now. Found by the audit below,
+  not the ebnf diff.
+
+Found by the first run of the corpus (13 files failed, five
+constructs) and of the doc blocks (two real gaps):
+
+- **f-strings** — `fstring_literal` is now the scanner's second token,
+  mirroring `lex_fstring`: an interpolation runs to its depth-matched
+  `}`, and a bare `"` inside it doesn't end the literal, so
+  `f"tuple = {(1, "two", 3.5)}"` is one token. The body stays opaque.
+- **Strings span lines** — `string_literal` and `bytes_literal`, as
+  `lex_string` / `lex_bytes` read them.
+- **`fallible(E)` on an interface method** (#732) —
+  `interface_method_sig` takes `fallible_marker`.
+- **`@secret` on a parameter** (#265) — `secret_annotation`, the one
+  attribute `parse_param` reads; @attribute in `highlights.scm`.
+- **A block is an expression** — in `_expression`, as in hale's
+  `parse_primary`: a field default `= { …; Slot { } }`, a `let` value, a
+  match arm, an `or` substitute. A statement led by `{` stays a block
+  statement (`prec(1)` in `_statement`), as `parse_stmt` reads it.
+  `match_arm` and `or_disposition_expr` lost their separate `block`
+  alternative; their trees are unchanged.
+- **The scrutinee-less match** — `match { n < 10 -> a, else -> b }`,
+  arms `cond_match_arm` (`condition`, `body`; `else` has no condition).
+  `match_stmt` and `match_expr` share one body.
+- The three conflicts `generate` called unnecessary
+  (`_type_expr`/`_expression`, `qualified_name`/`path_expr`,
+  `named_type`/`_expression`) are gone; it reports no conflict now.
+
+The cost, and why: hale's dialect words are contextual. tree-sitter
+gets that for free wherever only an identifier is valid; a keyword only
+steals where an identifier is valid in the same state. Three such
+spots are new, and each loses one spelling hale accepts: `type P =
+point;` (an alias of a type named `point` / `quantity` /
+`distinct`); a call of a fn named like a policy directly after `or`
+(`or floor(x)` parses with no error node but into the wrong tree, `(x or floor)` applied to `(1)`, where hale reads `floor(1)` as the substitute; `or (floor)` and `std::math::floor(x)` are fine); and
+an imported topic through an alias named `api` at a binding head
+(`api::T: …`). A grep audit of the 949 corpus files and every doc
+block found none of the three.
+
+Queries: the new words in `highlights.scm` as the existing ones are;
+`(policy)` @keyword; `(scalar_kind)` @keyword.modifier; a quantity
+literal's magnitude @number via `integer_literal` and its unit
+`(unit_name)` @type, the tree-sitter-css convention for a number's
+unit, as are a unit's declared name and every reference to it; role
+names @constant; `@gated` @attribute; `release` moved to the lifecycle
+group. `tags.scm`: `unit_decl` as @definition.type, `role_decl` as
+@definition.constant. `locals.scm` unchanged: `unit_name` is not an
+`identifier`, so units — their own namespace in hale — never resolve
+as locals, which is the point.
+
+Validated: `tree-sitter generate` (CLI 0.26.9, ABI 14) with no
+conflict reported; 63/63 corpus tests (42 + 21 new: 9 in
+`units.txt`, 5 in `roles_api.txt`, 1 in `recent_additions.txt`, 6 in
+`literals_and_blocks.txt`); 952/952 hale `.hl` files outside
+`target/` parse with no ERROR or MISSING node, `known-gaps.txt`
+empty. Doc blocks: of the 260 complete untagged ```hale blocks in
+`docs/src` and `spec`, 197 parse and 63 fail. The first run failed 64;
+two of those were grammar gaps, both fixed above
+(`docs/src/basics/fallible.md` block 3, interface `fallible`, now
+parses; `spec/semantics.md` block 2, the scrutinee-less match, still
+fails as a top-level `let`). The 63 that fail are text hale refuses
+too (the reviewer's extraction, which also takes indented fences, counts 261 blocks and 66 refused, two of them in `docs/src`: `first-run.md` and `operations.md`), nearly all in `spec/`, for a hale-side `hale,fragment` tag or fix:
+statements at top level (37 blocks) or locus members at top level
+(12, the four predicted among them), `#` comments (`forms.md`), `…` / `...` elisions, `loop`,
+`or ()`, a `nats(...)` transport, `;` between adapter inits, and an
+API signature listing (`types.md` block 4). All three query files
+load and run over `tests/hale/unit_quantities_test.hl` and
+`crates/hale-stdlib/hl/time.hl`. `tree-sitter highlight` was not
+run: CLI 0.26 reads a language's config from `tree-sitter.json`,
+which this repo doesn't have (package.json's `"tree-sitter"` section
+is the older form).
+
 ## 2026-08-12 — placement pairings, routing keys, block-shaped terminals
 
 Synced against hale `main` at 37914e5 (20 commits on from the last
