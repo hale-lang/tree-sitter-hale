@@ -58,16 +58,13 @@ module.exports = grammar({
   conflicts: $ => [
     // Conflicts surface as the grammar grows. Document the
     // reason for each entry inline.
-    [$._expression, $._type_expr],         // qualified_name appears in both
     [$.lvalue, $.self_expr],               // `self[i]` could be lvalue or expr
     [$.lvalue, $._expression],             // `foo.bar` could be lvalue or field_expr
     [$.binding_pattern, $.qualified_name], // bare ident in pattern position
     [$.if_stmt, $.if_expr],                // statement-position if vs value-position if
     [$.match_stmt, $.match_expr],          // same, for match (Gap C)
-    [$.qualified_name, $.path_expr],       // `Foo::Bar` followed by `{` (struct literal) vs `(` (path call)
     [$._locus_decorator, $.fn_decorators], // `@export` prefixes both locus and fn decls
     [$.qualified_name, $._expression],     // `foo` as qualified-name (for literal/type) vs identifier expression
-    [$.named_type, $._expression],         // `from < total` — named_type's generic_args vs binary_expr's `<`
   ],
 
   // Supertypes are deferred — tree-sitter requires a "single
