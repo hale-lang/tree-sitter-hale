@@ -111,7 +111,7 @@ steals where an identifier is valid in the same state. Three such
 spots are new, and each loses one spelling hale accepts: `type P =
 point;` (an alias of a type named `point` / `quantity` /
 `distinct`); a call of a fn named like a policy directly after `or`
-(`or floor(x)`; `or (floor)` and `std::math::floor(x)` are fine); and
+(`or floor(x)` parses with no error node but into the wrong tree, `(x or floor)` applied to `(1)`, where hale reads `floor(1)` as the substitute; `or (floor)` and `std::math::floor(x)` are fine); and
 an imported topic through an alias named `api` at a binding head
 (`api::T: …`). A grep audit of the 949 corpus files and every doc
 block found none of the three.
@@ -138,7 +138,7 @@ two of those were grammar gaps, both fixed above
 (`docs/src/basics/fallible.md` block 3, interface `fallible`, now
 parses; `spec/semantics.md` block 2, the scrutinee-less match, still
 fails as a top-level `let`). The 63 that fail are text hale refuses
-too, all in `spec/`, for a hale-side `hale,fragment` tag or fix:
+too (the reviewer's extraction, which also takes indented fences, counts 261 blocks and 66 refused, two of them in `docs/src`: `first-run.md` and `operations.md`), nearly all in `spec/`, for a hale-side `hale,fragment` tag or fix:
 statements at top level (37 blocks) or locus members at top level
 (12, the four predicted among them), `#` comments (`forms.md`), `…` / `...` elisions, `loop`,
 `or ()`, a `nats(...)` transport, `;` between adapter inits, and an
