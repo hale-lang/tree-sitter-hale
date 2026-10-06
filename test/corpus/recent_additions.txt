@@ -427,14 +427,16 @@ locus RouterV1 : serves Router, tier 2 {
     (identifier)
     (locus_annotations
       (serves_clause
-        (identifier))
+        (qualified_name
+          (identifier)))
       (locus_annotation
         (integer_literal)))
     (lifecycle_decl
       (block
         (reperspective_stmt
           (identifier)
-          (identifier))))
+          (qualified_name
+            (identifier)))))
     (lifecycle_decl
       (block
         (terminate_stmt)))))

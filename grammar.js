@@ -124,6 +124,24 @@ module.exports = grammar({
       // GH #409: a named, composable claimset, declared outside
       // any main and adopted by entrypoints.
       $.constitution_decl,
+      // GH #1109: authorization vocabulary for `@gated`.
+      $.role_decl,
+    ),
+
+    // GH #1109: `role NAME [includes A, B];` — a name the deployment
+    // maps to principals. `includes` is grant-only and union-only (a
+    // cycle is the checker's error). `role` / `includes` are CONTEXTUAL
+    // in the hale parser; `role` is also the `unix(..., role: listen)`
+    // kwarg, a different position.
+    role_decl: $ => seq(
+      'role',
+      field('name', $.identifier),
+      optional(seq(
+        'includes',
+        field('include', $.identifier),
+        repeat(seq(',', field('include', $.identifier))),
+      )),
+      ';',
     ),
 
     // FUv0.8.2 #7: `target <name> { cap.path, ... }` — names a
@@ -242,7 +260,14 @@ module.exports = grammar({
       '}',
     ),
 
+    // Decorators are taken (and left to the checker) so a perspective's
+    // contract signature can carry the `@gated` hale's parser reads onto
+    // it — GH #1109 refuses that by its rule, a perspective's fns being
+    // signatures the serving loci answer, not a gate. Sharing
+    // `fn_decorators` with `function_decl` keeps the bodyless and the
+    // bodied forms one LR prefix in a perspective body.
     interface_method_sig: $ => seq(
+      optional($.fn_decorators),
       'fn',
       field('name', $.identifier),
       '(',
@@ -480,7 +505,9 @@ module.exports = grammar({
       $.serves_clause,
     ),
 
-    serves_clause: $ => seq('serves', field('perspective', $.identifier)),
+    // GH #724: the contract may be an IMPORTED perspective, named
+    // through its import alias — `serves lib::Routing`.
+    serves_clause: $ => seq('serves', field('perspective', $.qualified_name)),
 
     locus_annotation: $ => choice(
       seq('tier', $.integer_literal),
@@ -858,12 +885,16 @@ module.exports = grammar({
     bindings_block: $ => seq(
       'bindings',
       '{',
-      repeat($.binding_entry),
+      repeat(choice($.binding_entry, $.api_binding)),
       '}',
     ),
 
+    // GH #527 B6: the topic may be an IMPORTED one, named through its
+    // import alias — `catalog::Ticks: unix(...)`. A topic shared
+    // between binaries lives in a seed both import, so the qualified
+    // spelling is the common one.
     binding_entry: $ => seq(
-      field('topic', $.identifier),
+      field('topic', $.qualified_name),
       ':',
       $._transport_spec,
       optional($.codec_spec),
@@ -871,15 +902,83 @@ module.exports = grammar({
       ';',
     ),
 
+    // GH #1106: the api binding — `api: unix(path, bound: N, on_full:
+    // refuse, …) [, http(host, port, principals: P)] [, serve: [p, …]];`.
+    // Binds the program's API (every subscribed topic a command, every
+    // published topic a stream, every expose a read) rather than one
+    // topic. `api` is CONTEXTUAL in hale, told from a topic by the `:`
+    // after it; at most one per block, which is the checker's to say.
+    // The path is an expression (a literal, or `self.<param>`).
+    api_binding: $ => seq(
+      'api',
+      ':',
+      'unix',
+      '(',
+      field('path', $._expression),
+      repeat(seq(',', $.api_kwarg)),
+      optional(','),
+      ')',
+      repeat(seq(',', choice($.api_http, $.api_serve))),
+      ';',
+    ),
+
+    // Every kwarg is optional to the parser; the checker requires
+    // `bound` / `on_full` and pairs `watch_bound` with `on_watch_full`.
+    // Policy values stay identifiers, as `on_full` on a topic does —
+    // the compiler owns the legal set (`refuse`, `drop_old` /
+    // `drop_new`, `refuse` / `drop`).
+    api_kwarg: $ => choice(
+      seq(
+        field('key', choice('bound', 'watch_bound')),
+        ':',
+        field('value', $.integer_literal),
+      ),
+      seq(
+        field('key', choice('on_full', 'on_watch_full', 'on_unauthorized')),
+        ':',
+        field('value', $.identifier),
+      ),
+      // GH #1109: the membership source — a locus literal or one of
+      // main's params, evaluated as a param default.
+      seq(field('key', 'roles'), ':', field('value', $._expression)),
+    ),
+
+    // GH #1135: the binding's HTTP transport, one POST per request.
+    api_http: $ => seq(
+      'http',
+      '(',
+      field('host', $._expression),
+      ',',
+      field('port', $._expression),
+      optional(seq(',', 'principals', ':', field('principals', $._expression))),
+      optional(','),
+      ')',
+    ),
+
+    // GH #1137: params of main whose locus another seed declared,
+    // put on the surface beside the seed's own.
+    api_serve: $ => seq(
+      'serve',
+      ':',
+      '[',
+      optional(seq(
+        field('param', $.identifier),
+        repeat(seq(',', field('param', $.identifier))),
+        optional(','),
+      )),
+      ']',
+    ),
+
     // F.36 Slice 2 (2026-05-28): `codec(JsonCodec { })` — pluggable
     // encode/decode for a cross-binary route that doesn't speak the
     // internal wire format. The named locus must structurally
     // provide `encode` / `decode`; the grammar just takes the
-    // struct-literal shape.
+    // struct-literal shape. GH #1034: the codec (and an adapter
+    // transport) may be an imported locus, `codec(lib::JsonCodec { })`.
     codec_spec: $ => seq(
       'codec',
       '(',
-      field('codec', $.identifier),
+      field('codec', $.qualified_name),
       '{',
       optional(seq(
         $.struct_init,
@@ -924,7 +1023,7 @@ module.exports = grammar({
     overflow_policy: $ => choice('block', 'drop', 'fail'),
 
     adapter_transport: $ => seq(
-      field('locus_name', $.identifier),
+      field('locus_name', $.qualified_name),
       '{',
       optional(seq(
         $.struct_init,
@@ -980,8 +1079,11 @@ module.exports = grammar({
       ),
     ),
 
+    // GH #1109: `@gated(role: R)` goes on an `expose` only — a `consume`
+    // is the parent's read of its child, never a caller's, and hale's
+    // parser refuses the pair.
     contract_member: $ => seq(
-      choice('expose', 'consume'),
+      choice(seq(optional($.gated_annotation), 'expose'), 'consume'),
       choice(
         seq(field('name', $.identifier), ':', field('type', $._type_expr), ';'),
         seq('inferred', ';'),
@@ -1034,7 +1136,11 @@ module.exports = grammar({
       )),
     ),
 
+    // GH #1109: a `publish` may carry `@gated(role: R)` — the role an
+    // external watcher of the stream must hold. A subscription's gate
+    // goes on the handler fn the `subscribe` names, not on the line.
     bus_publish: $ => seq(
+      optional($.gated_annotation),
       'publish',
       field('subject', $._bus_subject),
       optional(seq('of', 'type', field('type', $._type_expr))),
@@ -1276,11 +1382,12 @@ module.exports = grammar({
 
     // Perspectives Phase 2a: `perspective(P)` — a live-rebindable
     // handle to the contract P, dispatched through a program-global
-    // slot. Used as a param field type on a holder locus.
+    // slot. Used as a param field type on a holder locus. GH #724: P
+    // may be an imported contract, `perspective(lib::Routing)`.
     perspective_type: $ => seq(
       'perspective',
       '(',
-      field('contract', $.identifier),
+      field('contract', $.qualified_name),
       ')',
     ),
 
@@ -1392,7 +1499,22 @@ module.exports = grammar({
       $.no_effect_annotation,
       $.no_panic_annotation,
       $.deterministic_annotation,
+      $.gated_annotation,
     )),
+
+    // GH #1109: `@gated(role: R)` — the role a caller through the api
+    // binding must hold. On a subscribed handler (here, as a fn
+    // decorator), an `expose` member or a `publish` member; on any
+    // other fn the checker refuses it, the parser does not.
+    gated_annotation: $ => seq(
+      '@',
+      'gated',
+      '(',
+      'role',
+      ':',
+      field('role', $.identifier),
+      ')',
+    ),
 
     // #265 / #345: `@effects(<clause>: {A, B})`. Clause names are
     // bare idents rather than a fixed choice — `none` / `publish` /
@@ -1530,14 +1652,15 @@ module.exports = grammar({
 
     // Perspectives Phase 2b (2026-06): `reperspective self.slot
     // as NewImpl;` — the live redeploy. Swaps the implementation
-    // behind a perspective slot at pointer-flip cost.
+    // behind a perspective slot at pointer-flip cost. GH #724: the
+    // impl may be an imported locus, `as lib::Double`.
     reperspective_stmt: $ => seq(
       'reperspective',
       'self',
       '.',
       field('slot', $.identifier),
       'as',
-      field('impl', $.identifier),
+      field('impl', $.qualified_name),
       ';',
     ),
 

@@ -45,6 +45,11 @@
 (constitution_decl
   name: (identifier) @name) @definition.type
 
+; role declaration (GH #1109) — authorization vocabulary `@gated(role:
+; R)` names; a named value rather than a type.
+(role_decl
+  name: (identifier) @name) @definition.constant
+
 ; module declaration (rarely used; reserved syntax)
 (module_decl
   name: (identifier) @name) @definition.namespace

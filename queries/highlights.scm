@@ -41,6 +41,9 @@
   ; GH #409: a named, composable claimset.
   "constitution"
   "extends"
+  ; GH #1109: authorization vocabulary (`role` itself is listed with
+  ; the transport keywords — it is also `unix(…, role: listen)`).
+  "includes"
 ] @keyword
 
 ; GH #382 claims surface
@@ -214,6 +217,15 @@
   "intra_machine"
   "cross_machine"
   "zero_copy"
+  ; GH #1106 / #1135 / #1137: the api binding and its clauses.
+  "api"
+  "watch_bound"
+  "on_watch_full"
+  "on_unauthorized"
+  "roles"
+  "http"
+  "principals"
+  "serve"
 ] @keyword
 
 ; Statement / expression keywords
@@ -322,6 +334,14 @@
   "@" @attribute
   "deterministic" @attribute)
 
+; GH #1109: `@gated(role: R)` on a handler fn, an `expose` or a
+; `publish`. The role reads as the named value it is, as it does where
+; `role R;` declares it.
+(gated_annotation
+  "@" @attribute
+  "gated" @attribute
+  role: (identifier) @constant)
+
 ; F.32-2 v0.2 (2026-05-25): @locality(L1|L2|L3|any). Tier
 ; names get constant.builtin so they read as named values
 ; rather than identifiers.
@@ -354,6 +374,10 @@
 (constitution_decl name: (identifier) @type)
 (constitution_decl base: (identifier) @type)
 (adopt_entry constitution: (identifier) @type)
+
+; GH #1109: a role is deployment vocabulary, a named value.
+(role_decl name: (identifier) @constant)
+(role_decl include: (identifier) @constant)
 
 ; Generic params
 (generic_param name: (identifier) @type)

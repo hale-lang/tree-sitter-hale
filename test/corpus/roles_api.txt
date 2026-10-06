@@ -1,0 +1,231 @@
+==================
+Role declarations and @gated on a handler, an expose, a publish (#1109)
+==================
+
+role clerk;
+role owner includes auditor, clerk;
+
+locus Shop {
+    contract {
+        @gated(role: auditor) expose ledger: Ledger;
+        consume stock: Int;
+    }
+    bus {
+        subscribe Refund as on_refund;
+        @gated(role: clerk) publish Moved;
+    }
+    @gated(role: clerk)
+    fn on_refund(r: Refund) {
+        return;
+    }
+}
+
+---
+
+(source_file
+  (role_decl
+    name: (identifier))
+  (role_decl
+    name: (identifier)
+    include: (identifier)
+    include: (identifier))
+  (locus_decl
+    name: (identifier)
+    (contract_block
+      (contract_member
+        (gated_annotation
+          role: (identifier))
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      (contract_member
+        name: (identifier)
+        type: (primitive_type)))
+    (bus_block
+      (bus_subscribe
+        subject: (qualified_name
+          (identifier))
+        handler: (identifier))
+      (bus_publish
+        (gated_annotation
+          role: (identifier))
+        subject: (qualified_name
+          (identifier))))
+    (function_decl
+      (fn_decorators
+        (gated_annotation
+          role: (identifier)))
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      (block
+        (return_stmt)))))
+
+==================
+@gated on a perspective's contract fn parses; the checker refuses it (#1109)
+==================
+
+perspective Router {
+    @gated(role: clerk) fn route(r: Req) -> Resp;
+}
+
+---
+
+(source_file
+  (perspective_decl
+    name: (identifier)
+    (interface_method_sig
+      (fn_decorators
+        (gated_annotation
+          role: (identifier)))
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      return_type: (named_type
+        (qualified_name
+          (identifier))))))
+
+==================
+The api binding: kwargs, http, serve (#1106, #1135, #1137)
+==================
+
+main locus App {
+    bindings {
+        api: unix("/run/app.sock", bound: 64, on_full: refuse);
+    }
+}
+
+main locus Head {
+    bindings {
+        api: unix(self.socket, bound: 64, on_full: refuse, roles: self.roles),
+            http("127.0.0.1", self.http_port, principals: Tokens { }),
+            serve: [commands];
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    name: (identifier)
+    (bindings_block
+      (api_binding
+        path: (string_literal)
+        (api_kwarg
+          value: (integer_literal))
+        (api_kwarg
+          value: (identifier)))))
+  (locus_decl
+    name: (identifier)
+    (bindings_block
+      (api_binding
+        path: (field_expr
+          object: (self_expr)
+          member: (identifier))
+        (api_kwarg
+          value: (integer_literal))
+        (api_kwarg
+          value: (identifier))
+        (api_kwarg
+          value: (field_expr
+            object: (self_expr)
+            member: (identifier)))
+        (api_http
+          host: (string_literal)
+          port: (field_expr
+            object: (self_expr)
+            member: (identifier))
+          principals: (struct_literal
+            name: (qualified_name
+              (identifier))))
+        (api_serve
+          param: (identifier))))))
+
+==================
+Qualified binding topics, adapters and codecs (#527 B6, #1034)
+==================
+
+main locus Organism {
+    bindings {
+        dna::IntentOffered: unix("/tmp/intent.sock", role: listen);
+        dna::ReviewVerdict: nats::NatsAdapter { };
+        Out: nats::NatsAdapter { } codec(nats::JsonCodec { });
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    name: (identifier)
+    (bindings_block
+      (binding_entry
+        topic: (qualified_name
+          (identifier)
+          (identifier))
+        (unix_transport
+          (string_literal)
+          (unix_kwarg)))
+      (binding_entry
+        topic: (qualified_name
+          (identifier)
+          (identifier))
+        (adapter_transport
+          locus_name: (qualified_name
+            (identifier)
+            (identifier))))
+      (binding_entry
+        topic: (qualified_name
+          (identifier))
+        (adapter_transport
+          locus_name: (qualified_name
+            (identifier)
+            (identifier)))
+        (codec_spec
+          codec: (qualified_name
+            (identifier)
+            (identifier)))))))
+
+==================
+Imported perspectives: serves, perspective(…), reperspective (#724)
+==================
+
+locus RouterV2 : serves lib::Routing {
+    params { slot: perspective(lib::Routing) = Fallback { }; }
+    run() { reperspective self.slot as lib::Double; }
+}
+
+---
+
+(source_file
+  (locus_decl
+    name: (identifier)
+    (locus_annotations
+      (serves_clause
+        perspective: (qualified_name
+          (identifier)
+          (identifier))))
+    (params_block
+      (param_decl
+        name: (identifier)
+        type: (perspective_type
+          contract: (qualified_name
+            (identifier)
+            (identifier)))
+        default: (struct_literal
+          name: (qualified_name
+            (identifier)))))
+    (lifecycle_decl
+      (block
+        (reperspective_stmt
+          slot: (identifier)
+          impl: (qualified_name
+            (identifier)
+            (identifier)))))))
