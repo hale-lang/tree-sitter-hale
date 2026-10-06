@@ -32,6 +32,17 @@ const PREC = {
   SEND: -1,             // <- (statement only)
 };
 
+// What follows `match` in match_stmt and match_expr: a scrutinee and
+// its pattern arms, or — hale's `parse_match_stmt` reading a `{` right
+// after `match` — the scrutinee-less form whose arms are conditions.
+function matchBody($) {
+  const arms = arm => seq(arm, repeat(seq(',', arm)), optional(','));
+  return choice(
+    seq(field('scrutinee', $._expression), '{', arms($.match_arm), '}'),
+    seq('{', arms($.cond_match_arm), '}'),
+  );
+}
+
 module.exports = grammar({
   name: 'hale',
 
@@ -1907,21 +1918,22 @@ module.exports = grammar({
       optional(seq('else', field('else', $.block))),
     )),
 
-    match_stmt: $ => seq(
-      'match',
-      field('scrutinee', $._expression),
-      '{',
-      $.match_arm,
-      repeat(seq(',', $.match_arm)),
-      optional(','),
-      '}',
-    ),
+    match_stmt: $ => seq('match', matchBody($)),
 
     match_arm: $ => seq(
       field('pattern', $._pattern),
       optional(seq('if', field('guard', $._expression))),
       '->',
       // A block body is an `_expression` (see there).
+      field('body', $._expression),
+    ),
+
+    // An arm of the scrutinee-less `match { n < 10 -> a, else -> b }`:
+    // a condition, or `else` for the catch-all. hale's
+    // `parse_cond_match_arm` desugars it to a guarded `_` arm.
+    cond_match_arm: $ => seq(
+      choice(field('condition', $._expression), 'else'),
+      '->',
       field('body', $._expression),
     ),
 
@@ -2214,15 +2226,7 @@ module.exports = grammar({
     // `match_expr = match_stmt` — but a separate rule, so the
     // statement and expression readings stay distinguishable in
     // the tree the way if_stmt / if_expr do.
-    match_expr: $ => seq(
-      'match',
-      field('scrutinee', $._expression),
-      '{',
-      $.match_arm,
-      repeat(seq(',', $.match_arm)),
-      optional(','),
-      '}',
-    ),
+    match_expr: $ => seq('match', matchBody($)),
 
     // `sum(x)` / `prod(x)` — the reduction expressions closure
     // assertions and capacity computations use — deliberately have

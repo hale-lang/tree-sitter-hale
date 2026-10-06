@@ -92,6 +92,61 @@ fn salted(@secret password: String, salt: Bytes) -> Bytes { salt }
       (identifier))))
 
 ==================
+Scrutinee-less match: condition arms and `else` (2026-10-06)
+==================
+
+fn tier(n: Int) -> String {
+    let t = match {
+        n < 10  -> "small",
+        n < 100 -> { "medium" },
+        else    -> "large",
+    };
+    match {
+        n == 0 -> log("zero"),
+        else -> log(t)
+    }
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (match_expr
+          (cond_match_arm
+            condition: (binary_expr
+              left: (identifier)
+              right: (integer_literal))
+            body: (string_literal))
+          (cond_match_arm
+            condition: (binary_expr
+              left: (identifier)
+              right: (integer_literal))
+            body: (block
+              (string_literal)))
+          (cond_match_arm
+            body: (string_literal))))
+      (match_stmt
+        (cond_match_arm
+          condition: (binary_expr
+            left: (identifier)
+            right: (integer_literal))
+          body: (call_expr
+            callee: (identifier)
+            (string_literal)))
+        (cond_match_arm
+          body: (call_expr
+            callee: (identifier)
+            (identifier)))))))
+
+==================
 Block expression: a field default, a let value, a match arm; a block statement (2026-10-06)
 ==================
 
