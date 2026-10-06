@@ -124,6 +124,7 @@
 [
   "birth"
   "accept"
+  "release"
   "run"
   "drain"
   "dissolve"
@@ -235,7 +236,6 @@
   "yield"
   "terminate"
   "reperspective"
-  "release"
 ] @keyword
 
 ; Recovery primitives

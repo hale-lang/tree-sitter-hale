@@ -95,6 +95,14 @@ module.exports = grammar({
     ),
 
     _top_decl: $ => choice(
+      $._module_member,
+      // GH #901: the one top-level declaration a module body may not
+      // hold — a program-level build directive. hale's parser refuses
+      // it at any depth, so it sits outside `_module_member`.
+      $.target_decl,
+    ),
+
+    _module_member: $ => choice(
       $.locus_decl,
       $.perspective_decl,
       $.type_decl,
@@ -106,7 +114,6 @@ module.exports = grammar({
       $.ring_layout_decl,
       $.module_decl,
       $.effect_decl,
-      $.target_decl,
       $.group_decl,
       $.domain_decl,
       // #392 thread 2: a TOP-LEVEL claims block — the library
@@ -223,7 +230,7 @@ module.exports = grammar({
       'module',
       field('name', $.identifier),
       '{',
-      repeat($._top_decl),
+      repeat($._module_member),
       '}',
     ),
 
@@ -519,6 +526,11 @@ module.exports = grammar({
       $.failure_decl,
       $.closure_decl,
       $.function_decl,
+      // GH #747 / #756: `const` and `type` are top-level declarations,
+      // NOT locus members — but hale's parser still reads one in a
+      // locus body so the checker can refuse it as a located error at
+      // the keyword rather than a cascading parse failure. Kept here
+      // for the same reason: the tree stays whole around the mistake.
       $.const_decl,
       $.type_decl,
       $.bindings_block,
@@ -1068,6 +1080,10 @@ module.exports = grammar({
     _lifecycle_keyword: $ => choice(
       'birth',
       'accept',
+      // 2026-05-30: the death-side bookend of `accept` — one child
+      // param, `release (c: Kid) { … }`. In the ebnf since then; never
+      // modeled here until the lifecycle fixtures exercised it.
+      'release',
       'run',
       'drain',
       'dissolve',
