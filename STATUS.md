@@ -3,6 +3,21 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-10-07 — a unit name is @type.unit
+
+A unit is coloured as a kind of type, in the three highlighters alike
+(hale's book and `tools/hale_svg.py`, hale-lang.org's TextMate grammar,
+this repo). `highlights.scm`: a unit's declared name and every
+`(unit_name)` (a quantity literal's suffix, an equation's target, a
+denomination, an origin, `conversion`'s unit) are `@type.unit`, which
+Helix and Neovim resolve to `@type`; `x.split(u)` stays a `call_expr`
+(above, 2026-10-06), so its unit is a query on the one bare identifier
+argument of a method named `split`. No grammar change. Validated: 63/63
+corpus tests; `tree-sitter query` over hale's
+`tests/hale/unit_quantities_test.hl` and `crates/hale-stdlib/hl/time.hl`
+captures every unit name, `d.split(sec)`'s included, and none of
+`line.split(",")`, `line.split(sep, 2)` or `d.splitter(s)`.
+
 ## 2026-10-06 — the unit dialect, roles and `@gated`, the api binding
 
 Synced against hale `main` at 89d0e7920. The rules were written
