@@ -20,3 +20,10 @@
 # the compiler bumps, not only when this repo changes.
 # Blank lines and `#` comments are ignored; add a repo-relative path
 # on its own line to XFAIL a file.
+
+# 2026-10-07: the API surface contract's fixture program (hale PR
+# #1429, GH #1417 step R0) is written in the plan's syntax (`api`
+# blocks, `@rpc`, `api::serve(… as: …, receivers: …)`, a topic bound
+# to a hub with `requires:`), which the compiler parses from R1 on and
+# this grammar models after it. Expected to fail until then.
+tests/api-contract/program.hl
