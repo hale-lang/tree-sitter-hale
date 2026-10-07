@@ -394,14 +394,24 @@
 (constitution_decl base: (identifier) @type)
 (adopt_entry constitution: (identifier) @type)
 
-; GH #1076: a unit names a dimension, the namespace a denomination
-; (`in cent`) reads in type position, so its name and every reference
-; to it — a quantity literal's suffix, an equation's target, a
-; denomination, an origin, `.in(…)` — share @type. The tree-sitter-css
-; convention for a number's unit, and distinct from the magnitude's
-; @number.
-(unit_decl name: (identifier) @type)
-(unit_name) @type
+; GH #1076: a unit is coloured as a kind of type. Its declared name and
+; every reference to it — a quantity literal's suffix, an equation's
+; target, a denomination, an origin, `.in(…)` — are @type.unit, which
+; Helix and Neovim resolve to @type when a theme has no rule for it.
+; The tree-sitter-css convention for a number's unit, and distinct
+; from the magnitude's @number.
+(unit_decl name: (identifier) @type.unit)
+(unit_name) @type.unit
+
+; `x.split(u)` is an ordinary method call in the tree (a `conversion`
+; node would reserve the word), so its unit is matched here: the one
+; bare identifier argument of a method named `split`, positionally, as
+; the book's and the site's highlighters do.
+((call_expr
+  callee: (field_expr member: (identifier) @_method)
+  .
+  (identifier) @type.unit .)
+ (#eq? @_method "split"))
 
 ; GH #1109: a role is deployment vocabulary, a named value.
 (role_decl name: (identifier) @constant)
@@ -464,7 +474,7 @@
 (float_literal) @number.float
 (decimal_literal) @number
 ; A quantity literal's magnitude is an integer_literal node (@number
-; above); its unit is a unit_name (@type, under Types).
+; above); its unit is a unit_name (@type.unit, under Types).
 (time_literal) @string.special
 (boolean_literal) @constant.builtin
 (nil_literal) @constant.builtin
