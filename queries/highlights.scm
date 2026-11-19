@@ -22,22 +22,33 @@
 
 [
   "locus"
-  "perspective"
   "interface"
-  "module"
   "topic"
   "ring_layout"
   "type"
+  "enum"
   "const"
   "fn"
   "import"
   "as"
   "main"
-  "export"
   "target"
   "group"
   "domain"
   "effect"
+  ; Phase 4: `fleet locus` and its placement's `host("…")`.
+  "fleet"
+  "host"
+  ; GH #1417: a surface and its rows; GH #1530: a row's route.
+  "api"
+  "rpc"
+  "requires"
+  "at"
+  "status"
+  "wire"
+  ; GH #1530 step 2: a seam, and its `or end;` tail.
+  "seam"
+  "end"
   ; GH #409: a named, composable claimset.
   "constitution"
   "extends"
@@ -86,6 +97,14 @@
   "paths"
   "from"
   "may_be_empty"
+  "only"
+  "calls"
+  ; GH #1327: key coverage, silent loss, separate domains.
+  "keys"
+  "delivered_to"
+  "exactly_one"
+  "no_silent_loss"
+  "separate_domains"
   ; `bound <effect> <= N on paths from <origin>` — `on` is a lexer
   ; keyword and the grammar already parses it; it was simply never
   ; queried, so it read as plain text beside the words around it.
@@ -106,7 +125,6 @@
 [
   "tier"
   "projection"
-  "schedule"
   "rich"
   "chunked"
   "recognition"
@@ -123,7 +141,6 @@
   "l3"
   "replicas"
   "reserve"
-  "serves"
 ] @keyword.modifier
 
 ; Locus member keywords
@@ -188,6 +205,12 @@
   "heap"
   "indexed_by"
   "as_parent_for"
+  ; `heap jobs of Job ordered_by min priority;` (a @form(heap) slot).
+  "ordered_by"
+  "min"
+  "max"
+  ; F.52: an optional field's clear flag, `x?: T clearable;`.
+  "clearable"
 ] @keyword
 
 ; Closure keywords
@@ -204,12 +227,6 @@
   "explicit"
   "approx"
   "within"
-] @keyword
-
-; Perspective keywords
-[
-  "stable_when"
-  "serialize_as"
 ] @keyword
 
 ; Transport / binding keywords
@@ -231,15 +248,6 @@
   "intra_machine"
   "cross_machine"
   "zero_copy"
-  ; GH #1106 / #1135 / #1137: the api binding and its clauses.
-  "api"
-  "watch_bound"
-  "on_watch_full"
-  "on_unauthorized"
-  "roles"
-  "http"
-  "principals"
-  "serve"
 ] @keyword
 
 ; Statement / expression keywords
@@ -261,16 +269,14 @@
   "self"
   "yield"
   "terminate"
-  "reperspective"
 ] @keyword
 
-; Recovery primitives
+; Recovery primitives. The op word (`restart`, `restart_in_place`,
+; `quarantine`, `reorganize`, `bubble`) is a keyword only before its `(`
+; at statement head, so the scanner hands it over as one node.
+(recovery_op) @keyword.exception
+
 [
-  "restart"
-  "restart_in_place"
-  "quarantine"
-  "reorganize"
-  "bubble"
   "violate"
   "with"
   "until"
@@ -287,14 +293,13 @@
 
 (raise_disposition)   @keyword.exception
 (discard_disposition) @keyword.exception
+(wait_disposition)    @keyword.exception
 (fail_disposition "fail" @keyword.exception)
 
-; Reserved-for-future keywords (trait, impl, async, await,
-; macro) aren't queryable because the grammar doesn't
-; reference them — they exist only as lexer-level reservations
-; in the real compiler. If they show up in source they'll
-; parse as identifiers; consumers can highlight separately
-; if desired.
+; `trait`, `impl`, `async`, `await`, `macro` and `export` are ordinary
+; identifiers (F.47), as are `module` (F.57) and `perspective`,
+; `serves`, `reperspective`, `serialize_as` and `stable_when` (F.55):
+; none of them is highlighted as a keyword.
 
 ; ============================================================
 ; Annotation decorators (@form, @ffi, @locality)
@@ -353,13 +358,72 @@
   "@" @attribute
   "deterministic" @attribute)
 
-; GH #1109: `@gated(role: R)` on a handler fn, an `expose` or a
-; `publish`. The role reads as the named value it is, as it does where
-; `role R;` declares it.
-(gated_annotation
+; `@export` on a fn or a locus (a wasm export): an annotation, not a
+; keyword (F.47).
+(export_annotation
   "@" @attribute
-  "gated" @attribute
-  role: (identifier) @constant)
+  "export" @attribute)
+
+(budget_annotation
+  "@" @attribute
+  "budget" @attribute)
+
+(effects_annotation
+  "@" @attribute
+  "effects" @attribute)
+
+(phase_effects_annotation
+  "@" @attribute
+  "phase_effects" @attribute)
+
+; GH #1490: `@bounded_by(<name>)` names what bounds the growth.
+(bounded_by_annotation
+  "@" @attribute
+  "bounded_by" @attribute)
+
+; GH #1417: `@rpc` / `@rpc(requires: [R])` on a locus fn.
+(rpc_annotation
+  "@" @attribute
+  "rpc" @attribute)
+
+; GH #1951: `@raise fn` — an `or raise` conversion.
+(raise_annotation
+  "@" @attribute
+  "raise" @attribute)
+
+; GH #1530: `@repo(T)` on a locus and `@idempotent` /
+; `@not_idempotent` on its writes.
+(repo_annotation
+  "@" @attribute
+  "repo" @attribute
+  type: (identifier) @type)
+
+(idempotent_annotation) @attribute
+
+; Type annotations: `@positional` (a record as a JSON array),
+; `@wire_case(snake)` (an enum's wire spelling) and `@display("…")`
+; (how values render as text, F.54).
+(positional_annotation
+  "@" @attribute
+  "positional" @attribute)
+
+(wire_case_annotation
+  "@" @attribute
+  "wire_case" @attribute
+  case: (identifier) @constant.builtin)
+
+(display_annotation
+  "@" @attribute
+  "display" @attribute)
+
+; `@not_found Missing`: an enum variant's error class.
+(error_class_annotation
+  "@" @attribute
+  class: (identifier) @attribute)
+
+; A role a surface row, an `@rpc` or a hub binding requires, and a role
+; a role includes: the named value it is where `role R;` declares it.
+(requires_clause role: (role_ref (identifier) @constant))
 
 ; F.32-2 v0.2 (2026-05-25): @locality(L1|L2|L3|any). Tier
 ; names get constant.builtin so they read as named values
@@ -384,8 +448,9 @@
 (type_decl name: (identifier) @type)
 (locus_decl name: (identifier) @type)
 (interface_decl name: (identifier) @type)
-(perspective_decl name: (identifier) @type)
 (topic_decl name: (identifier) @type)
+(fleet_decl name: (identifier) @type)
+(api_decl name: (identifier) @type)
 
 ; GH #409: a constitution names a claimset. Its own name, the
 ; bases it extends, and the name an entrypoint adopts all read
@@ -415,17 +480,23 @@
 
 ; GH #1109: a role is deployment vocabulary, a named value.
 (role_decl name: (identifier) @constant)
-(role_decl include: (identifier) @constant)
+(role_decl include: (role_ref (identifier) @constant))
+(group_member role: (identifier) @constant)
 
 ; Generic params
 (generic_param name: (identifier) @type)
 
-; Projection-class wrappers
-[
-  "Rich"
-  "Chunked"
-  "Recognition"
-] @type.builtin
+; Projection-class wrappers, `rich<Sample>` — the words are contextual,
+; type constructors only when a `<` follows.
+(projection_type
+  [
+    "rich"
+    "chunked"
+    "recognition"
+  ] @type.builtin)
+
+; GH #1530: a set type's members.
+(type_decl member: (qualified_name (identifier) @type))
 
 ; Named types in type-expression positions look like identifiers.
 ; We cover this via parameter / field type fields:
@@ -438,6 +509,10 @@
 ; ============================================================
 
 (function_decl name: (identifier) @function)
+(seam_decl name: (identifier) @function.method)
+; A surface row's handler, `rpc Shop::place;`, and a signature row's name.
+(rpc_handler (identifier) @function.method .)
+(rpc_row name: (identifier) @function.method)
 (interface_method_sig name: (identifier) @function.method)
 (ffi_function_decl name: (identifier) @function)
 
@@ -466,11 +541,22 @@
 ; Struct literal field positions
 (struct_init field: (identifier) @variable.member)
 
+; `api::serve(…, as: "t", bound: 8)` — a named argument.
+(named_argument name: (identifier) @variable.parameter)
+
+; An import list's names, `import "p" as a { Row, show as display };`.
+(import_item name: (identifier) @variable)
+(import_item alias: (identifier) @variable)
+(import_decl alias: (identifier) @module)
+
 ; ============================================================
 ; Literals
 ; ============================================================
 
 (integer_literal) @number
+; GH #1995 S6: `b'/'` is an Int, written as a character
+; (`constant.character`, which Helix names and Neovim reads as a constant).
+(byte_literal) @constant.character
 (float_literal) @number.float
 (decimal_literal) @number
 ; A quantity literal's magnitude is an integer_literal node (@number
@@ -569,5 +655,13 @@
 (self_expr) @variable.builtin
 
 ; Go-style field tags (a backtick string in field-declaration position)
-; read as attribute metadata, not a time-literal string.
+; read as attribute metadata, not a time-literal string — on a field
+; and, since GH #1951, on an enum variant (``Sell `json:"sell"` ``).
 (struct_field tag: (time_literal) @attribute)
+(enum_variant tag: (time_literal) @attribute)
+
+; F.52: the `?` of an optional field, `last?: Decimal<8>;`.
+(optional_marker) @punctuation.special
+
+; F.54: a `@display` template is a format string.
+(display_annotation template: (string_literal) @string.special)

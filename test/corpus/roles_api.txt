@@ -1,20 +1,19 @@
 ==================
-Role declarations and @gated on a handler, an expose, a publish (#1109)
+Roles: qualified includes and `role` group members (#1109, #1417)
 ==================
 
 role clerk;
-role owner includes auditor, clerk;
-
+role owner includes auditor, lib::clerk;
+group staff = { role clerk, Shop };
 locus Shop {
     contract {
-        @gated(role: auditor) expose ledger: Ledger;
+        expose ledger: Ledger;
         consume stock: Int;
     }
     bus {
         subscribe Refund as on_refund;
-        @gated(role: clerk) publish Moved;
+        publish Moved;
     }
-    @gated(role: clerk)
     fn on_refund(r: Refund) {
         return;
     }
@@ -27,14 +26,21 @@ locus Shop {
     name: (identifier))
   (role_decl
     name: (identifier)
-    include: (identifier)
-    include: (identifier))
+    include: (role_ref
+      (identifier))
+    include: (role_ref
+      (identifier)
+      (identifier)))
+  (group_decl
+    name: (identifier)
+    (group_member
+      role: (identifier))
+    (group_member
+      (identifier)))
   (locus_decl
     name: (identifier)
     (contract_block
       (contract_member
-        (gated_annotation
-          role: (identifier))
         name: (identifier)
         type: (named_type
           (qualified_name
@@ -48,14 +54,9 @@ locus Shop {
           (identifier))
         handler: (identifier))
       (bus_publish
-        (gated_annotation
-          role: (identifier))
         subject: (qualified_name
           (identifier))))
     (function_decl
-      (fn_decorators
-        (gated_annotation
-          role: (identifier)))
       name: (identifier)
       (parameter
         name: (identifier)
@@ -64,49 +65,110 @@ locus Shop {
             (identifier))))
       (block
         (return_stmt)))))
-
 ==================
-@gated on a perspective's contract fn parses; the checker refuses it (#1109)
+API surfaces: rows, routes, requires, imported signatures, @rpc (#1417, #1530)
 ==================
 
-perspective Router {
-    @gated(role: clerk) fn route(r: Req) -> Resp;
+api Shop requires: [clerk] {
+    rpc Shop::on_order;
+    rpc lib::Shop::stock_now requires: [clerk, lib::manager];
+    rpc Probe::live at "GET /healthz" status: 200;
+}
+
+api Pets from openapi "pets.json" {
+    rpc list_pets(ListReq) -> Pets wire: "listPets" requires: [];
+}
+
+locus Shop {
+    @rpc fn on_order(o: Order) { }
+    @rpc(requires: [manager]) fn stock_now() -> Int { 0 }
 }
 
 ---
 
 (source_file
-  (perspective_decl
+  (api_decl
     name: (identifier)
-    (interface_method_sig
+    (requires_clause
+      role: (role_ref
+        (identifier)))
+    (rpc_row
+      handler: (rpc_handler
+        (identifier)
+        (identifier)))
+    (rpc_row
+      handler: (rpc_handler
+        (identifier)
+        (identifier)
+        (identifier))
+      (requires_clause
+        role: (role_ref
+          (identifier))
+        role: (role_ref
+          (identifier)
+          (identifier))))
+    (rpc_row
+      handler: (rpc_handler
+        (identifier)
+        (identifier))
+      (route_clause
+        route: (string_literal)
+        status: (integer_literal))))
+  (api_decl
+    name: (identifier)
+    (api_source
+      kind: (identifier)
+      location: (string_literal))
+    (rpc_row
+      name: (identifier)
+      request: (named_type
+        (qualified_name
+          (identifier)))
+      response: (named_type
+        (qualified_name
+          (identifier)))
+      wire: (string_literal)
+      (requires_clause)))
+  (locus_decl
+    name: (identifier)
+    (function_decl
       (fn_decorators
-        (gated_annotation
-          role: (identifier)))
+        (rpc_annotation))
       name: (identifier)
       (parameter
         name: (identifier)
         type: (named_type
           (qualified_name
             (identifier))))
-      return_type: (named_type
-        (qualified_name
-          (identifier))))))
-
+      (block))
+    (function_decl
+      (fn_decorators
+        (rpc_annotation
+          (requires_clause
+            role: (role_ref
+              (identifier)))))
+      name: (identifier)
+      return_type: (primitive_type)
+      (block
+        (integer_literal)))))
 ==================
-The api binding: kwargs, http, serve (#1106, #1135, #1137)
+Hub bindings and the named arguments of api::serve (#1417)
 ==================
 
 main locus App {
-    bindings {
-        api: unix("/run/app.sock", bound: 64, on_full: refuse);
+    params {
+        sock: api::Exposure = api::serve(
+            Shop,
+            self.door,
+            as: "shop",
+            receivers: { Shop: self.shop, lib::Desk: self.desk, },
+            bound: 8,
+            on_full: refuse,
+        );
     }
-}
-
-main locus Head {
     bindings {
-        api: unix(self.socket, bound: 64, on_full: refuse, roles: self.roles),
-            http("127.0.0.1", self.http_port, principals: Tokens { }),
-            serve: [commands];
+        Fills: self.hub requires: [trader], bound: 64, on_full: drop_old;
+        lib::Ticks: self.hub;
     }
 }
 
@@ -115,39 +177,61 @@ main locus Head {
 (source_file
   (locus_decl
     name: (identifier)
-    (bindings_block
-      (api_binding
-        path: (string_literal)
-        (api_kwarg
-          value: (integer_literal))
-        (api_kwarg
-          value: (identifier)))))
-  (locus_decl
-    name: (identifier)
-    (bindings_block
-      (api_binding
-        path: (field_expr
-          object: (self_expr)
-          member: (identifier))
-        (api_kwarg
-          value: (integer_literal))
-        (api_kwarg
-          value: (identifier))
-        (api_kwarg
-          value: (field_expr
-            object: (self_expr)
-            member: (identifier)))
-        (api_http
-          host: (string_literal)
-          port: (field_expr
+    (params_block
+      (param_decl
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier)
+            (identifier)))
+        default: (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))
+          (identifier)
+          (field_expr
             object: (self_expr)
             member: (identifier))
-          principals: (struct_literal
-            name: (qualified_name
-              (identifier))))
-        (api_serve
-          param: (identifier))))))
-
+          (named_argument
+            name: (identifier)
+            value: (string_literal))
+          (named_argument
+            name: (identifier)
+            value: (receiver_map
+              (receiver_entry
+                locus: (qualified_name
+                  (identifier))
+                value: (field_expr
+                  object: (self_expr)
+                  member: (identifier)))
+              (receiver_entry
+                locus: (qualified_name
+                  (identifier)
+                  (identifier))
+                value: (field_expr
+                  object: (self_expr)
+                  member: (identifier)))))
+          (named_argument
+            name: (identifier)
+            value: (integer_literal))
+          (named_argument
+            name: (identifier)
+            value: (identifier)))))
+    (bindings_block
+      (hub_entry
+        topic: (qualified_name
+          (identifier))
+        hub: (identifier)
+        (requires_clause
+          role: (role_ref
+            (identifier)))
+        bound: (integer_literal)
+        on_full: (identifier))
+      (hub_entry
+        topic: (qualified_name
+          (identifier)
+          (identifier))
+        hub: (identifier)))))
 ==================
 Qualified binding topics, adapters and codecs (#527 B6, #1034)
 ==================
@@ -194,38 +278,60 @@ main locus Organism {
             (identifier)))))))
 
 ==================
-Imported perspectives: serves, perspective(…), reperspective (#724)
+An interface-typed param where a perspective stood (F.55)
 ==================
 
-locus RouterV2 : serves lib::Routing {
-    params { slot: perspective(lib::Routing) = Fallback { }; }
-    run() { reperspective self.slot as lib::Double; }
+interface Routing {
+    fn route(r: Req) -> Resp;
+}
+
+locus RouterV2 {
+    params { slot: lib::Routing = Fallback { }; }
+    fn route(r: Req) -> Resp { self.slot.route(r) }
 }
 
 ---
 
 (source_file
+  (interface_decl
+    name: (identifier)
+    (interface_method_sig
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      return_type: (named_type
+        (qualified_name
+          (identifier)))))
   (locus_decl
     name: (identifier)
-    (locus_annotations
-      (serves_clause
-        perspective: (qualified_name
-          (identifier)
-          (identifier))))
     (params_block
       (param_decl
         name: (identifier)
-        type: (perspective_type
-          contract: (qualified_name
+        type: (named_type
+          (qualified_name
             (identifier)
             (identifier)))
         default: (struct_literal
           name: (qualified_name
             (identifier)))))
-    (lifecycle_decl
+    (function_decl
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      return_type: (named_type
+        (qualified_name
+          (identifier)))
       (block
-        (reperspective_stmt
-          slot: (identifier)
-          impl: (qualified_name
-            (identifier)
-            (identifier)))))))
+        (call_expr
+          callee: (field_expr
+            object: (field_expr
+              object: (self_expr)
+              member: (identifier))
+            member: (identifier))
+          (identifier))))))

@@ -36,10 +36,6 @@
 (topic_decl
   name: (identifier) @name) @definition.type
 
-; perspective declaration
-(perspective_decl
-  name: (identifier) @name) @definition.type
-
 ; constitution declaration (GH #409) — a named claimset the
 ; symbol picker should reach, like any other top-level name.
 (constitution_decl
@@ -51,14 +47,22 @@
 (unit_decl
   name: (identifier) @name) @definition.type
 
-; role declaration (GH #1109) — authorization vocabulary `@gated(role:
-; R)` names; a named value rather than a type.
+; role declaration (GH #1109) — authorization vocabulary a surface's
+; `requires: [R]` names; a named value rather than a type.
 (role_decl
   name: (identifier) @name) @definition.constant
 
-; module declaration (rarely used; reserved syntax)
-(module_decl
-  name: (identifier) @name) @definition.namespace
+; api surface (GH #1417) — a named table of rpc rows.
+(api_decl
+  name: (identifier) @name) @definition.interface
+
+; fleet locus (phase 4) — a deployment of other seeds' main loci.
+(fleet_decl
+  name: (identifier) @name) @definition.type
+
+; seam (GH #1530) — the callable form is a method of its locus.
+(seam_decl
+  name: (identifier) @name) @definition.method
 
 ; ============================================================
 ; Functions

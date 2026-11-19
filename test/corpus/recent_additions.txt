@@ -412,11 +412,12 @@ main locus App {
         (placement_constraint)))))
 
 ==================
-Perspective serves clause + reperspective + terminate
+terminate; the perspective words are names (F.55)
 ==================
 
-locus RouterV1 : serves Router, tier 2 {
-    run() { reperspective self.route as RouterV2; }
+locus RouterV1 : tier 2 {
+    params { perspective: Int = 0; serves: Int = 1; }
+    run() { let reperspective = self.perspective; }
     drain() { terminate; }
 }
 
@@ -424,23 +425,29 @@ locus RouterV1 : serves Router, tier 2 {
 
 (source_file
   (locus_decl
-    (identifier)
+    name: (identifier)
     (locus_annotations
-      (serves_clause
-        (qualified_name
-          (identifier)))
       (locus_annotation
         (integer_literal)))
+    (params_block
+      (param_decl
+        name: (identifier)
+        type: (primitive_type)
+        default: (integer_literal))
+      (param_decl
+        name: (identifier)
+        type: (primitive_type)
+        default: (integer_literal)))
     (lifecycle_decl
       (block
-        (reperspective_stmt
-          (identifier)
-          (qualified_name
-            (identifier)))))
+        (let_stmt
+          name: (identifier)
+          value: (field_expr
+            object: (self_expr)
+            member: (identifier)))))
     (lifecycle_decl
       (block
         (terminate_stmt)))))
-
 ==================
 @export locus + resets_per_epoch closure clause
 ==================
@@ -1005,13 +1012,12 @@ fn no_block_points() {
           (string_literal))))))
 
 ==================
-`release` lifecycle hook; a module body's declarations (2026-10-06)
+`release` lifecycle hook; `module` is a name (F.57)
 ==================
 
-module shapes {
-    type Corner { x: Int; }
-    const ORIGIN: Int = 0;
-}
+type Corner { x: Int; module: String; }
+
+fn module(module: Int) -> Int { let m = module; m }
 
 locus Pool {
     release (c: Kid) { }
@@ -1020,17 +1026,25 @@ locus Pool {
 ---
 
 (source_file
-  (module_decl
+  (type_decl
     name: (identifier)
-    (type_decl
+    (struct_field
       name: (identifier)
-      (struct_field
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type)))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
         name: (identifier)
-        type: (primitive_type)))
-    (const_decl
-      name: (identifier)
-      type: (primitive_type)
-      value: (integer_literal)))
+        value: (identifier))
+      (identifier)))
   (locus_decl
     name: (identifier)
     (lifecycle_decl

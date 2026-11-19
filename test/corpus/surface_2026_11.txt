@@ -1,0 +1,1043 @@
+==================
+Enum variant json tags, error classes, @wire_case (#1951, RFC #1995 E1b)
+==================
+
+type Side = enum { Buy `json:"buy"`, Sell `json:"sell"`, Other(String) `json:",other"` };
+
+@wire_case(snake)
+type Venue = enum { NewYork, London };
+
+type OrderError = enum { @not_found Missing, @conflict Exists };
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    (enum_variant
+      name: (identifier)
+      tag: (time_literal))
+    (enum_variant
+      name: (identifier)
+      tag: (time_literal))
+    (enum_variant
+      name: (identifier)
+      (primitive_type)
+      tag: (time_literal)))
+  (type_decl
+    (type_annotations
+      (wire_case_annotation
+        case: (identifier)))
+    name: (identifier)
+    (enum_variant
+      name: (identifier))
+    (enum_variant
+      name: (identifier)))
+  (type_decl
+    name: (identifier)
+    (enum_variant
+      (error_class_annotation
+        class: (identifier))
+      name: (identifier))
+    (enum_variant
+      (error_class_annotation
+        class: (identifier))
+      name: (identifier))))
+==================
+E::name, E::parse, E::variants, E::index are paths (RFC #1995 E1)
+==================
+
+fn names() {
+    let n = Side::name(Side::Buy);
+    let s = Side::parse("sell") or Side::Buy;
+    let all = Side::variants();
+    let i = Side::index(s);
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))
+          (path_expr
+            object: (identifier)
+            member: (identifier))))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (call_expr
+            callee: (path_expr
+              object: (identifier)
+              member: (identifier))
+            (string_literal))
+          disposition: (path_expr
+            object: (identifier)
+            member: (identifier))))
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))))
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))
+          (identifier))))))
+==================
+Or-patterns and string arms in a match (GH #1995 E2, S5)
+==================
+
+fn kind(e: CtlError, word: String) -> String {
+    let a = match e {
+        CtlError::Invalid(p) | CtlError::NotFound(p) -> p,
+        _ -> "other",
+    };
+    match word {
+        "buy" | "bid" -> "long",
+        "sell" -> "short",
+        _ if len(word) == 0 -> "empty",
+        _ -> a,
+    }
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (match_expr
+          scrutinee: (identifier)
+          (match_arm
+            pattern: (constructor_pattern
+              (qualified_name
+                (identifier)
+                (identifier))
+              (binding_pattern
+                (identifier)))
+            pattern: (constructor_pattern
+              (qualified_name
+                (identifier)
+                (identifier))
+              (binding_pattern
+                (identifier)))
+            body: (identifier))
+          (match_arm
+            pattern: (wildcard_pattern)
+            body: (string_literal))))
+      (match_stmt
+        scrutinee: (identifier)
+        (match_arm
+          pattern: (literal_pattern
+            (string_literal))
+          pattern: (literal_pattern
+            (string_literal))
+          body: (string_literal))
+        (match_arm
+          pattern: (literal_pattern
+            (string_literal))
+          body: (string_literal))
+        (match_arm
+          pattern: (wildcard_pattern)
+          guard: (binary_expr
+            left: (call_expr
+              callee: (identifier)
+              (identifier))
+            right: (integer_literal))
+          body: (string_literal))
+        (match_arm
+          pattern: (wildcard_pattern)
+          body: (identifier))))))
+==================
+if let and let … else (GH #1995 E3)
+==================
+
+fn price(side: Side, o: Outcome) -> Int {
+    if let Side::Limit(px) | Side::Stop(px) = side { return px; } else if let Side::Buy = side { return 1; }
+    let i = if let Outcome::Result(index) = o { index } else { 0 };
+    let Side::Limit(px) = side else { return 0; };
+    let mut (q, r) = divmod(i, 4);
+    let _ = q;
+    px + i
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (if_stmt
+        condition: (let_condition
+          pattern: (constructor_pattern
+            (qualified_name
+              (identifier)
+              (identifier))
+            (binding_pattern
+              (identifier)))
+          pattern: (constructor_pattern
+            (qualified_name
+              (identifier)
+              (identifier))
+            (binding_pattern
+              (identifier)))
+          value: (identifier))
+        then: (block
+          (return_stmt
+            (identifier)))
+        (let_condition
+          pattern: (constructor_pattern
+            (qualified_name
+              (identifier)
+              (identifier)))
+          value: (identifier))
+        (block
+          (return_stmt
+            (integer_literal))))
+      (let_stmt
+        name: (identifier)
+        value: (if_expr
+          condition: (let_condition
+            pattern: (constructor_pattern
+              (qualified_name
+                (identifier)
+                (identifier))
+              (binding_pattern
+                (identifier)))
+            value: (identifier))
+          then: (block
+            (identifier))
+          else: (block
+            (integer_literal))))
+      (let_stmt
+        pattern: (let_pattern
+          (constructor_pattern
+            (qualified_name
+              (identifier)
+              (identifier))
+            (binding_pattern
+              (identifier))))
+        value: (identifier)
+        else: (block
+          (return_stmt
+            (integer_literal))))
+      (let_stmt
+        names: (let_tuple_names
+          (identifier)
+          (identifier))
+        value: (call_expr
+          callee: (identifier)
+          (identifier)
+          (integer_literal)))
+      (let_stmt
+        name: (identifier)
+        value: (identifier))
+      (binary_expr
+        left: (identifier)
+        right: (identifier)))))
+==================
+Byte literals and byte patterns (GH #1995 S6)
+==================
+
+const SLASH: Int = b'/';
+const SEPARATORS: [Int; 3] = [b',', b';', b' '];
+
+fn class(c: Int) -> String {
+    match c {
+        b' ' | b'\t' | b'\n' -> "space",
+        b'\'' | b'"' -> "quote",
+        b'\\' | b'\x7f' -> "other",
+        -1 -> "end",
+        _ -> "byte",
+    }
+}
+
+---
+
+(source_file
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (byte_literal))
+  (const_decl
+    name: (identifier)
+    type: (array_type
+      (primitive_type)
+      (integer_literal))
+    value: (array_expr
+      (byte_literal)
+      (byte_literal)
+      (byte_literal)))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (match_stmt
+        scrutinee: (identifier)
+        (match_arm
+          pattern: (literal_pattern
+            (byte_literal))
+          pattern: (literal_pattern
+            (byte_literal))
+          pattern: (literal_pattern
+            (byte_literal))
+          body: (string_literal))
+        (match_arm
+          pattern: (literal_pattern
+            (byte_literal))
+          pattern: (literal_pattern
+            (byte_literal))
+          body: (string_literal))
+        (match_arm
+          pattern: (literal_pattern
+            (byte_literal))
+          pattern: (literal_pattern
+            (byte_literal))
+          body: (string_literal))
+        (match_arm
+          pattern: (literal_pattern
+            (integer_literal))
+          body: (string_literal))
+        (match_arm
+          pattern: (wildcard_pattern)
+          body: (string_literal))))))
+==================
+Open-ended slices (GH #1995 S1)
+==================
+
+fn cuts(s: String) {
+    let a = s[2..];
+    let b = s[..3];
+    let c = s[..=3];
+    let d = s[..];
+    let e = s[1..len(s)];
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (index_expr
+          object: (identifier)
+          index: (open_range
+            start: (integer_literal))))
+      (let_stmt
+        name: (identifier)
+        value: (index_expr
+          object: (identifier)
+          index: (open_range
+            end: (integer_literal))))
+      (let_stmt
+        name: (identifier)
+        value: (index_expr
+          object: (identifier)
+          index: (open_range
+            end: (integer_literal))))
+      (let_stmt
+        name: (identifier)
+        value: (index_expr
+          object: (identifier)
+          index: (open_range)))
+      (let_stmt
+        name: (identifier)
+        value: (index_expr
+          object: (identifier)
+          index: (range_expr
+            start: (integer_literal)
+            end: (call_expr
+              callee: (identifier)
+              (identifier))))))))
+==================
+@display templates on a record and a variant (RFC #2035, F.54)
+==================
+
+@display("{sym} at {px:?}")
+type Quote { sym: String; px: Decimal<2>; }
+
+type Fill = enum {
+    @display("bought {0}") Bought(Int),
+    Sold(Int),
+};
+
+fn show(q: Quote) -> String { f"{q} and {q.px:?}" }
+
+---
+
+(source_file
+  (type_decl
+    (type_annotations
+      (display_annotation
+        template: (string_literal)))
+    name: (identifier)
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type
+        scale: (integer_literal))))
+  (type_decl
+    name: (identifier)
+    (enum_variant
+      (display_annotation
+        template: (string_literal))
+      name: (identifier)
+      (primitive_type))
+    (enum_variant
+      name: (identifier)
+      (primitive_type)))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (fstring_literal))))
+==================
+Doc comments (GH #1674)
+==================
+
+/// A quote.
+///
+/// Two lines of text.
+type Quote {
+    /// The symbol.
+    sym: String;
+}
+
+//// an ordinary comment
+fn f() { }
+
+---
+
+(source_file
+  (line_comment)
+  (line_comment)
+  (line_comment)
+  (type_decl
+    name: (identifier)
+    (line_comment)
+    (struct_field
+      name: (identifier)
+      type: (primitive_type)))
+  (line_comment)
+  (function_decl
+    name: (identifier)
+    (block)))
+==================
+Records: @positional, optional fields, clearable, wire maps, Decimal<S>, U256 (#1951, #1530, #1934)
+==================
+
+@positional type Candle { open: Decimal<4>; close: Decimal<4>; }
+
+type Order {
+    last?: Decimal<8>;
+    expires_at?: Time clearable;
+    checks: bounded[Check; 3] indexed_by name;
+    marks: bounded[Mark; 2] indexed_by name -> px;
+    total: U256;
+    delta: I256;
+    note: String = "" `json:"note"`;
+}
+
+---
+
+(source_file
+  (type_decl
+    (type_annotations
+      (positional_annotation))
+    name: (identifier)
+    (struct_field
+      name: (identifier)
+      type: (primitive_type
+        scale: (integer_literal)))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type
+        scale: (integer_literal))))
+  (type_decl
+    name: (identifier)
+    (struct_field
+      name: (identifier)
+      (optional_marker)
+      type: (primitive_type
+        scale: (integer_literal)))
+    (struct_field
+      name: (identifier)
+      (optional_marker)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (bounded_type
+        (named_type
+          (qualified_name
+            (identifier)))
+        capacity: (integer_literal))
+      indexed_by: (identifier))
+    (struct_field
+      name: (identifier)
+      type: (bounded_type
+        (named_type
+          (qualified_name
+            (identifier)))
+        capacity: (integer_literal))
+      indexed_by: (identifier)
+      value_field: (identifier))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type)
+      default: (string_literal)
+      tag: (time_literal))))
+==================
+Set types (GH #1530)
+==================
+
+type Item = Book | Film | lib::Song;
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    member: (qualified_name
+      (identifier))
+    member: (qualified_name
+      (identifier))
+    member: (qualified_name
+      (identifier)
+      (identifier))))
+==================
+Raw strings and block strings (GH #1948, block strings)
+==================
+
+const A: String = r"C:\path";
+const B: String = r#"say "hi""#;
+const C: String = r##"a "# b"##;
+
+const PROGRAM: String = """
+    fn main() {
+        println("a\n{b}");
+    }
+    """;
+
+const NESTED: String = """"
+    const X: String = """
+        x
+        """;
+    """";
+
+fn f() { let x = """
+    y
+    """; }
+
+---
+
+(source_file
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (string_literal))
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (string_literal))
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (string_literal))
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (string_literal))
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (string_literal))
+  (function_decl
+    name: (identifier)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (string_literal)))))
+==================
+Import lists (GH #1951 item 6)
+==================
+
+import "./store" as st { Row, Side, describe as show, };
+import "./api" as api;
+
+---
+
+(source_file
+  (import_decl
+    path: (string_literal)
+    alias: (identifier)
+    (import_list
+      (import_item
+        name: (identifier))
+      (import_item
+        name: (identifier))
+      (import_item
+        name: (identifier)
+        alias: (identifier))))
+  (import_decl
+    path: (string_literal)
+    alias: (identifier)))
+==================
+Const without a type, trailing commas, lowercase projection types
+==================
+
+const LIMIT = 3;
+const NAME = "x";
+
+fn f(xs: rich<Sample>) -> chunked<Sample> {
+    let a = [1, 2, 3,];
+    g(a, 1,);
+}
+
+---
+
+(source_file
+  (const_decl
+    name: (identifier)
+    value: (integer_literal))
+  (const_decl
+    name: (identifier)
+    value: (string_literal))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (projection_type
+        (named_type
+          (qualified_name
+            (identifier)))))
+    return_type: (projection_type
+      (named_type
+        (qualified_name
+          (identifier))))
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (array_expr
+          (integer_literal)
+          (integer_literal)
+          (integer_literal)))
+      (expr_stmt
+        (call_expr
+          callee: (identifier)
+          (identifier)
+          (integer_literal))))))
+==================
+The F.47 words and `export` are names
+==================
+
+fn trait(impl: Int, async: Int) -> Int {
+    let await = impl + async;
+    let macro = await;
+    let export = macro;
+    export
+}
+
+@export fn entry() { }
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (binary_expr
+          left: (identifier)
+          right: (identifier)))
+      (let_stmt
+        name: (identifier)
+        value: (identifier))
+      (let_stmt
+        name: (identifier)
+        value: (identifier))
+      (identifier)))
+  (function_decl
+    (fn_decorators
+      (export_annotation))
+    name: (identifier)
+    (block)))
+==================
+Recovery words are keywords only before `(` (F.43)
+==================
+
+locus Sup {
+    on_failure(c: Child) {
+        let restart = true;
+        restart = false;
+        bubble = 1;
+        restart(c) for 3;
+        quarantine(c);
+        bubble(err);
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    name: (identifier)
+    (failure_decl
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      (block
+        (let_stmt
+          name: (identifier)
+          value: (boolean_literal))
+        (assign_stmt
+          target: (lvalue
+            (identifier))
+          value: (boolean_literal))
+        (assign_stmt
+          target: (lvalue
+            (identifier))
+          value: (integer_literal))
+        (recovery_stmt
+          op: (recovery_op)
+          (identifier)
+          (recovery_modifier
+            (integer_literal)))
+        (recovery_stmt
+          op: (recovery_op)
+          (identifier))
+        (recovery_stmt
+          op: (recovery_op)
+          (identifier))))))
+==================
+A fleet locus (phase 4)
+==================
+
+fleet locus Prod {
+    params {
+        orders: desk::Orders;
+        gw: gate::Gateway;
+    }
+    placement {
+        orders: host("box-a"), host("box-b");
+        gw: replicas(2);
+    }
+    bindings {
+        desk::Fills: unix("/run/fills.sock");
+    }
+}
+
+---
+
+(source_file
+  (fleet_decl
+    name: (identifier)
+    (params_block
+      (param_decl
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier)
+            (identifier))))
+      (param_decl
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier)
+            (identifier)))))
+    (fleet_placement
+      (fleet_placement_entry
+        field: (identifier)
+        (fleet_host
+          host: (string_literal))
+        (fleet_host
+          host: (string_literal)))
+      (fleet_placement_entry
+        field: (identifier)
+        replicas: (integer_literal)))
+    (bindings_block
+      (binding_entry
+        topic: (qualified_name
+          (identifier)
+          (identifier))
+        (unix_transport
+          (string_literal))))))
+==================
+Seams (GH #1530 step 2)
+==================
+
+locus Pipe {
+    seam {
+        std::io::stdin_line() -> self.parse -> self.store.put;
+        or end;
+    }
+    seam classify(frame: Bytes) -> String {
+        frame -> self.decode;
+        or violate fuse;
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    name: (identifier)
+    (seam_decl
+      source: (call_expr
+        callee: (path_expr
+          object: (path_expr
+            object: (identifier)
+            member: (identifier))
+          member: (identifier)))
+      (seam_hop
+        (identifier))
+      (seam_hop
+        (identifier)
+        (identifier)))
+    (seam_decl
+      name: (identifier)
+      param: (identifier)
+      param_type: (primitive_type)
+      return_type: (primitive_type)
+      source: (identifier)
+      (seam_hop
+        (identifier))
+      closure_name: (identifier))))
+==================
+Claims: routes, silent loss, separate domains, a stdlib module avoided (GH #1327)
+==================
+
+main locus App {
+    claims {
+        logs: forbid reaches(program, effects(stdio)) avoiding std::log::*;
+        keys: cover keys(topic Orders in -5..=10): delivered_to(exactly_one shards);
+        lossless: require no_silent_loss(topic lib::Fills);
+        all_lossless: require no_silent_loss(all desks);
+        apart: require separate_domains(all desks, all gates);
+    }
+}
+
+---
+
+(source_file
+  (locus_decl
+    name: (identifier)
+    (claims_block
+      (claim_entry
+        name: (identifier)
+        form: (forbid_form
+          (claim_set
+            (identifier))
+          (claim_set
+            (effect_class_ref
+              (identifier)))
+          (identifier)))
+      (claim_entry
+        name: (identifier)
+        form: (route_form
+          (topic_ref
+            (identifier))
+          low: (key_bound
+            (integer_literal))
+          high: (key_bound
+            (integer_literal))
+          group: (identifier)))
+      (claim_entry
+        name: (identifier)
+        form: (require_form
+          (topic_ref
+            (identifier)
+            (identifier))))
+      (claim_entry
+        name: (identifier)
+        form: (require_form
+          group: (identifier)))
+      (claim_entry
+        name: (identifier)
+        form: (require_form
+          group: (identifier)
+          group: (identifier))))))
+==================
+Decorators: @bounded_by, @raise, @repo, @idempotent, a heap slot (GH #1490, #1951, #1530)
+==================
+
+@raise fn report_from_parse(e: ParseError) -> Report { Report { } }
+
+@repo(Order)
+@form(heap)
+locus Orders {
+    capacity {
+        heap jobs of Job ordered_by min priority;
+    }
+    @bounded_by(self.open_requests)
+    run() { }
+    @unbounded mode bulk() { }
+    @effects(is: { creates(Order) }) @idempotent
+    fn create(o: Order) -> Order { o }
+    @not_idempotent @bounded_by(record)
+    fn bump(o: Order) -> Order { o }
+}
+
+---
+
+(source_file
+  (function_decl
+    (fn_decorators
+      (raise_annotation))
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (named_type
+      (qualified_name
+        (identifier)))
+    (block
+      (struct_literal
+        name: (qualified_name
+          (identifier)))))
+  (locus_decl
+    (repo_annotation
+      type: (identifier))
+    (form_annotation
+      form_name: (identifier))
+    name: (identifier)
+    (capacity_block
+      (capacity_slot
+        name: (identifier)
+        cell_type: (named_type
+          (qualified_name
+            (identifier)))
+        ordered_by: (identifier)))
+    (lifecycle_decl
+      (bounded_by_annotation
+        bound: (bound_path
+          (identifier)))
+      (block))
+    (mode_decl
+      (unbounded_annotation)
+      (block))
+    (function_decl
+      (fn_decorators
+        (effects_annotation
+          clause: (identifier)
+          (effect_class_set
+            (effect_class_ref
+              (identifier)
+              (identifier))))
+        (idempotent_annotation))
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      return_type: (named_type
+        (qualified_name
+          (identifier)))
+      (block
+        (identifier)))
+    (function_decl
+      (fn_decorators
+        (idempotent_annotation)
+        (bounded_by_annotation
+          bound: (bound_path
+            (identifier))))
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))))
+      return_type: (named_type
+        (qualified_name
+          (identifier)))
+      (block
+        (identifier)))))
+==================
+or wait on a publish (GH #255)
+==================
+
+fn send(t: Ticks) {
+    t <- 1 or wait;
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    (block
+      (send_stmt
+        subject: (identifier)
+        payload: (or_disposition_expr
+          expr: (integer_literal)
+          disposition: (wait_disposition))))))
