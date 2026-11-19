@@ -554,8 +554,9 @@
 ; ============================================================
 
 (integer_literal) @number
-; GH #1995 S6: `b'/'` is an Int, written as a character.
-(byte_literal) @character
+; GH #1995 S6: `b'/'` is an Int, written as a character
+; (`constant.character`, which Helix names and Neovim reads as a constant).
+(byte_literal) @constant.character
 (float_literal) @number.float
 (decimal_literal) @number
 ; A quantity literal's magnitude is an integer_literal node (@number
