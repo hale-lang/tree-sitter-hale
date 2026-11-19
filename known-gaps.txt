@@ -21,9 +21,9 @@
 # Blank lines and `#` comments are ignored; add a repo-relative path
 # on its own line to XFAIL a file.
 
-# 2026-10-07: the API surface contract's fixture program (hale PR
-# #1429, GH #1417 step R0) is written in the plan's syntax (`api`
-# blocks, `@rpc`, `api::serve(… as: …, receivers: …)`, a topic bound
-# to a hub with `requires:`), which the compiler parses from R1 on and
-# this grammar models after it. Expected to fail until then.
-tests/api-contract/program.hl
+# 2026-11-18 (the v0.36.0 sync): empty again. The API surface
+# contract's fixture (tests/api-contract/program.hl), XFAILed here on
+# 2026-10-07 until the compiler parsed its syntax, parses now that the
+# grammar models `api` surfaces, `@rpc`, `api::serve(… as: …,
+# receivers: …)` and hub bindings; all 1398 files outside target/ of
+# hale main at fd063cba6 with #2085 parse (STATUS.md, 2026-11-18).

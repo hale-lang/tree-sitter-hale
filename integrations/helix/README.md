@@ -90,16 +90,16 @@ Heron ships `queries/tags.scm` which Helix uses for its
 `<space>s` symbol picker. Once the grammar is built, opening
 any .hl file and pressing `<space>s` shows a fuzzy-filterable
 picker of every defined symbol — locus, type, interface,
-topic, perspective, function, const. Picking jumps to the
+topic, api surface, function, const. Picking jumps to the
 declaration.
 
 What gets indexed:
 
-- `@definition.type` — locus_decl, type_decl, topic_decl,
-  perspective_decl, constitution_decl, unit_decl
-- `@definition.interface` — interface_decl
+- `@definition.type` — locus_decl, fleet_decl, type_decl,
+  topic_decl, constitution_decl, unit_decl
+- `@definition.interface` — interface_decl, api_decl
 - `@definition.function` — function_decl, ffi_function_decl
-- `@definition.method` — interface_method_sig
+- `@definition.method` — interface_method_sig, seam_decl
 - `@definition.constant` — const_decl, role_decl
 - `@reference.call` — direct + method + path call sites
 - `@reference.type` — type references in fn params, struct

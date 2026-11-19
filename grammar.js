@@ -70,6 +70,22 @@ module.exports = grammar({
     // regular expression can't count the depth, so the scanner does.
     // The body stays opaque text, as it was.
     $.fstring_literal,
+    // A raw string, `r"…"` / `r#"…"#` / `r##"…"##` (GH #1948): it closes
+    // only at a `"` followed by as many `#` as opened it, which a regular
+    // expression can't count.
+    $._raw_string,
+    // A block string (tokens.md § Block strings): a fence of three or
+    // more `"` ending its line, raw lines, and a line whose first
+    // characters after spaces and tabs are exactly the fence. The fence
+    // length is a count, so the scanner reads it.
+    $._block_string,
+    // A recovery primitive's word (`restart`, `restart_in_place`,
+    // `quarantine`, `reorganize`, `bubble`) is a keyword only at the
+    // head of a statement when a `(` follows it (F.43): `restart(c) for
+    // 3;` is the recovery, `restart = true;` an assignment to a local.
+    // As a literal token the word would be taken wherever a statement
+    // may start, so the scanner reads it and looks for the `(`.
+    $._recovery_op,
   ],
 
   conflicts: $ => [
@@ -82,6 +98,11 @@ module.exports = grammar({
     [$.match_stmt, $.match_expr],          // same, for match (Gap C)
     [$._locus_decorator, $.fn_decorators], // `@export` prefixes both locus and fn decls
     [$.qualified_name, $._expression],     // `foo` as qualified-name (for literal/type) vs identifier expression
+    // GH #1995 E3: `let x = …` binds a name; `let X::A(v) = …` a pattern.
+    // The two share `let identifier`; the pattern reading carries a
+    // negative dynamic precedence, so a bare name stays a name.
+    [$.qualified_name, $.let_stmt],
+    [$.qualified_name, $.let_tuple_names, $.binding_pattern],
   ],
 
   // Supertypes are deferred — tree-sitter requires a "single
@@ -110,20 +131,32 @@ module.exports = grammar({
       field('path', $.string_literal),
       'as',
       field('alias', $.identifier),
+      optional($.import_list),
       ';',
     ),
 
-    _top_decl: $ => choice(
-      $._module_member,
-      // GH #901: the one top-level declaration a module body may not
-      // hold — a program-level build directive. hale's parser refuses
-      // it at any depth, so it sits outside `_module_member`.
-      $.target_decl,
+    // GH #1951 item 6 (F.51): `import "p" as a { Row, show as display };`
+    // — names of the imported seed brought in bare (as the `as` name when
+    // one is given) and re-exported through the alias. No globs.
+    import_list: $ => seq(
+      '{',
+      $.import_item,
+      repeat(seq(',', $.import_item)),
+      optional(','),
+      '}',
     ),
 
-    _module_member: $ => choice(
+    import_item: $ => seq(
+      field('name', $.identifier),
+      optional(seq('as', field('alias', $.identifier))),
+    ),
+
+    // F.57: there is no `module NAME { … }` declaration any more — a
+    // module is a directory, reached by `import` — and `module` is an
+    // ordinary identifier. F.55: nor is there a `perspective` one.
+    _top_decl: $ => choice(
       $.locus_decl,
-      $.perspective_decl,
+      $.fleet_decl,
       $.type_decl,
       $.const_decl,
       $.function_decl,
@@ -131,7 +164,7 @@ module.exports = grammar({
       $.interface_decl,
       $.topic_decl,
       $.ring_layout_decl,
-      $.module_decl,
+      $.target_decl,
       $.effect_decl,
       $.group_decl,
       $.domain_decl,
@@ -147,6 +180,8 @@ module.exports = grammar({
       $.role_decl,
       // GH #1076: a node (and edge) of the unit graph.
       $.unit_decl,
+      // GH #1417: a surface, a named table of rpc rows.
+      $.api_decl,
     ),
 
     // GH #1109: `role NAME [includes A, B];` — a name the deployment
@@ -159,10 +194,88 @@ module.exports = grammar({
       field('name', $.identifier),
       optional(seq(
         'includes',
-        field('include', $.identifier),
-        repeat(seq(',', field('include', $.identifier))),
+        field('include', $.role_ref),
+        repeat(seq(',', field('include', $.role_ref))),
       )),
       ';',
+    ),
+
+    // A role, qualified by an import alias when another seed declares
+    // it: `lib::reader`.
+    role_ref: $ => seq(
+      $.identifier,
+      optional(seq('::', $.identifier)),
+    ),
+
+    // GH #1417: `api NAME [requires: [R, …]] { rpc Locus::fn …; … }` — a
+    // surface, each `rpc` line a row naming a handler and the roles a
+    // caller must hold. `api`, `rpc` and `requires` are contextual.
+    api_decl: $ => seq(
+      'api',
+      field('name', $.identifier),
+      // An imported surface: `api Pets from openapi "pets.json" { … }`.
+      optional($.api_source),
+      optional($.requires_clause),
+      '{',
+      repeat($.rpc_row),
+      '}',
+    ),
+
+    api_source: $ => seq(
+      'from',
+      field('kind', $.identifier),
+      field('location', $.string_literal),
+    ),
+
+    rpc_row: $ => seq(
+      'rpc',
+      choice(
+        seq(
+          field('handler', $.rpc_handler),
+          optional($.route_clause),
+          optional($.requires_clause),
+        ),
+        // A signature row of an imported surface: `rpc name(Request)
+        // [-> Response] [wire: "…"] [requires: […]];`.
+        seq(
+          field('name', $.identifier),
+          '(',
+          optional(field('request', $._type_expr)),
+          ')',
+          optional(seq('->', field('response', $._type_expr))),
+          optional(seq('wire', ':', field('wire', $.string_literal))),
+          optional($.requires_clause),
+        ),
+      ),
+      ';',
+    ),
+
+    // `Locus::fn`, or `lib::Locus::fn` when another seed declares it.
+    rpc_handler: $ => seq(
+      $.identifier,
+      '::',
+      $.identifier,
+      repeat(seq('::', $.identifier)),
+    ),
+
+    // GH #1530: `at "METHOD /path/{param}" [status: N]` — where
+    // `http::Rest` serves the row.
+    route_clause: $ => seq(
+      'at',
+      field('route', $.string_literal),
+      optional(seq('status', ':', field('status', $.integer_literal))),
+    ),
+
+    requires_clause: $ => seq(
+      'requires',
+      ':',
+      '[',
+      optional(seq(
+        field('role', $.role_ref),
+        repeat(seq(',', field('role', $.role_ref))),
+        optional(','),
+      )),
+      ']',
     ),
 
     // GH #1076: `unit NAME;` declares a node of the unit graph;
@@ -247,10 +360,14 @@ module.exports = grammar({
       ';',
     ),
 
-    group_member: $ => seq(
-      $.identifier,
-      repeat(seq('::', $.identifier)),
-      optional(seq('::', '*')),
+    group_member: $ => choice(
+      seq(
+        $.identifier,
+        repeat(seq('::', $.identifier)),
+        optional(seq('::', '*')),
+      ),
+      // `role R` — the handlers a holder of R may call.
+      seq('role', field('role', $.identifier)),
     ),
 
     // GH #382 phase 3: `domain wing = { delta, gamma };` — a closed
@@ -308,14 +425,6 @@ module.exports = grammar({
       ';',
     ),
 
-    module_decl: $ => seq(
-      'module',
-      field('name', $.identifier),
-      '{',
-      repeat($._module_member),
-      '}',
-    ),
-
     interface_decl: $ => seq(
       'interface',
       field('name', $.identifier),
@@ -324,12 +433,9 @@ module.exports = grammar({
       '}',
     ),
 
-    // Decorators are taken (and left to the checker) so a perspective's
-    // contract signature can carry the `@gated` hale's parser reads onto
-    // it — GH #1109 refuses that by its rule, a perspective's fns being
-    // signatures the serving loci answer, not a gate. Sharing
-    // `fn_decorators` with `function_decl` keeps the bodyless and the
-    // bodied forms one LR prefix in a perspective body.
+    // Decorators are taken (and left to the checker): sharing
+    // `fn_decorators` with `function_decl` keeps an interface method's
+    // head one LR prefix with a fn's.
     interface_method_sig: $ => seq(
       optional($.fn_decorators),
       'fn',
@@ -473,6 +579,43 @@ module.exports = grammar({
       '}',
     ),
 
+    // Phase 4: a fleet locus — a deployment of other seeds' `main` loci,
+    // checked as one graph and never run. `fleet` is contextual, a word
+    // only before `locus` at the top level.
+    fleet_decl: $ => seq(
+      'fleet',
+      'locus',
+      field('name', $.identifier),
+      '{',
+      repeat(choice(
+        $.params_block,
+        $.fleet_placement,
+        $.bindings_block,
+        $.claims_block,
+      )),
+      '}',
+    ),
+
+    // `placement { orders: host("box-a"), host("box-b"); gw: replicas(2); }`
+    fleet_placement: $ => seq(
+      'placement',
+      '{',
+      repeat($.fleet_placement_entry),
+      '}',
+    ),
+
+    fleet_placement_entry: $ => seq(
+      field('field', $.identifier),
+      ':',
+      choice(
+        seq($.fleet_host, repeat(seq(',', $.fleet_host))),
+        seq('replicas', '(', field('replicas', $.integer_literal), ')'),
+      ),
+      ';',
+    ),
+
+    fleet_host: $ => seq('host', '(', field('host', $.string_literal), ')'),
+
     _locus_decorator: $ => choice(
       $.form_annotation,
       $.locality_annotation,
@@ -487,6 +630,17 @@ module.exports = grammar({
       $.supervised_annotation,
       $.sealed_annotation,
       $.bounded_annotation,
+      $.repo_annotation,
+    ),
+
+    // GH #1530 step 4: `@repo(Order) locus Orders { … }` — a locus held
+    // to the repository method set for the record type it names.
+    repo_annotation: $ => seq(
+      '@',
+      'repo',
+      '(',
+      field('type', $.identifier),
+      ')',
     ),
 
     // GH #436: `@sealed locus` confines the locus's state — its
@@ -555,31 +709,17 @@ module.exports = grammar({
       'any',
     ),
 
+    // F.55: the `serves P` item is gone with perspectives; F.31 / F.56:
+    // so is `schedule` (placement lives in a `placement { }` block).
     locus_annotations: $ => seq(
       ':',
-      $._locus_header_item,
-      repeat(seq(',', $._locus_header_item)),
-    ),
-
-    // Perspectives Phase 2a (2026-06): the post-`:` list may
-    // carry `serves P` conformance clauses intermixed with the
-    // annotations — `locus RouterV1 : serves Router, tier 2 { }`.
-    // `serves` is a contextual ident recognized only here. Hidden
-    // grouping rule so annotations stay direct children of
-    // `locus_annotations`; `serves` gets its own named node.
-    _locus_header_item: $ => choice(
       $.locus_annotation,
-      $.serves_clause,
+      repeat(seq(',', $.locus_annotation)),
     ),
-
-    // GH #724: the contract may be an IMPORTED perspective, named
-    // through its import alias — `serves lib::Routing`.
-    serves_clause: $ => seq('serves', field('perspective', $.qualified_name)),
 
     locus_annotation: $ => choice(
       seq('tier', $.integer_literal),
       seq('projection', $.projection_class),
-      seq('schedule', $.schedule_class),
     ),
 
     projection_class: $ => choice(
@@ -605,11 +745,6 @@ module.exports = grammar({
       'summary_only',
     ),
 
-    schedule_class: $ => choice(
-      'cooperative',
-      seq('pinned', optional(seq('(', 'core', '=', $.integer_literal, ')'))),
-    ),
-
     _locus_member: $ => choice(
       $.params_block,
       $.contract_block,
@@ -632,6 +767,40 @@ module.exports = grammar({
       $.topology_block,
       $.claims_block,
       $.birth_check_decl,
+      // GH #1530 step 2: a chain of hops the compiler stitches.
+      $.seam_decl,
+    ),
+
+    // `seam [name(p: T) [-> R]] { src -> self.a -> self.b.c; [or end; | or
+    // violate C;] }`. The closed flow (no name) begins at a source call
+    // and is the locus's `run`; the callable form begins at its
+    // parameter. `seam`, `end` and `violate` are contextual here.
+    seam_decl: $ => seq(
+      'seam',
+      optional(seq(
+        field('name', $.identifier),
+        '(',
+        field('param', $.identifier),
+        ':',
+        field('param_type', $._type_expr),
+        ')',
+        optional(seq('->', field('return_type', $._type_expr))),
+      )),
+      '{',
+      field('source', $._expression),
+      repeat1(seq('->', $.seam_hop)),
+      ';',
+      optional(seq(
+        'or',
+        choice('end', seq('violate', field('closure_name', $.identifier))),
+        ';',
+      )),
+      '}',
+    ),
+
+    seam_hop: $ => seq(
+      'self',
+      repeat1(seq('.', $.identifier)),
     ),
 
     // GH #382: the `claims { }` main-locus member — named
@@ -668,6 +837,7 @@ module.exports = grammar({
       $.bound_form,
       $.require_form,
       $.cover_form,
+      $.route_form,
       $.count_form,
     ),
 
@@ -684,7 +854,12 @@ module.exports = grammar({
             repeat(seq(',', choice('calls', 'bus'))),
             optional(','), '}'),
         seq('during', $.identifier),
-        seq('avoiding', $.identifier),
+        // `avoiding std::log::*` names a stdlib module inline: the
+        // implicit group of that one member.
+        seq('avoiding', choice(
+          $.identifier,
+          seq('std', repeat1(seq('::', $.identifier)), '::', '*'),
+        )),
       )),
     ),
 
@@ -747,6 +922,31 @@ module.exports = grammar({
         field('class', choice($.identifier, alias('publish', $.identifier))),
         ')',
       ),
+      // GH #1327 section 2: no boundary on a named route is configured
+      // to discard silently.
+      seq(
+        'require',
+        'no_silent_loss',
+        '(',
+        choice(
+          seq('topic', $.topic_ref),
+          seq('all', field('group', $.identifier)),
+        ),
+        ')',
+      ),
+      // GH #1327 section 5: the two groups' instances occupy distinct
+      // execution domains.
+      seq(
+        'require',
+        'separate_domains',
+        '(',
+        'all',
+        field('group', $.identifier),
+        ',',
+        'all',
+        field('group', $.identifier),
+        ')',
+      ),
     ),
 
     cover_form: $ => seq(
@@ -764,6 +964,31 @@ module.exports = grammar({
       field('group', $.identifier),
       ')',
     ),
+
+    // GH #1327 section 1: `cover keys(topic T [in lo..=hi]):
+    // delivered_to(exactly_one G)` — exactly one recipient per key.
+    route_form: $ => seq(
+      'cover',
+      'keys',
+      '(',
+      'topic',
+      $.topic_ref,
+      optional(seq(
+        'in',
+        field('low', $.key_bound),
+        '..=',
+        field('high', $.key_bound),
+      )),
+      ')',
+      ':',
+      'delivered_to',
+      '(',
+      'exactly_one',
+      field('group', $.identifier),
+      ')',
+    ),
+
+    key_bound: $ => seq(optional('-'), $.integer_literal),
 
     count_form: $ => seq(
       'count',
@@ -952,7 +1177,7 @@ module.exports = grammar({
     bindings_block: $ => seq(
       'bindings',
       '{',
-      repeat(choice($.binding_entry, $.api_binding)),
+      repeat(choice($.binding_entry, $.hub_entry)),
       '}',
     ),
 
@@ -969,71 +1194,27 @@ module.exports = grammar({
       ';',
     ),
 
-    // GH #1106: the api binding — `api: unix(path, bound: N, on_full:
-    // refuse, …) [, http(host, port, principals: P)] [, serve: [p, …]];`.
-    // Binds the program's API (every subscribed topic a command, every
-    // published topic a stream, every expose a read) rather than one
-    // topic. `api` is CONTEXTUAL in hale, told from a topic by the `:`
-    // after it; at most one per block, which is the checker's to say.
-    // The path is an expression (a literal, or `self.<param>`).
-    api_binding: $ => seq(
-      'api',
+    // GH #1417: a topic bound to a hub, a transport instance the locus
+    // holds as a param, with the stream row's exposure fields on the
+    // binding — `Fills: self.hub, requires: [trader], bound: 64;`. (The
+    // GH #1106 `api: unix(…)` entry it replaced is retired.)
+    hub_entry: $ => seq(
+      field('topic', $.qualified_name),
       ':',
-      'unix',
-      '(',
-      field('path', $._expression),
-      repeat(seq(',', $.api_kwarg)),
-      optional(','),
-      ')',
-      repeat(seq(',', choice($.api_http, $.api_serve))),
+      'self',
+      '.',
+      field('hub', $.identifier),
+      optional(seq(
+        $._hub_clause,
+        repeat(seq(',', $._hub_clause)),
+      )),
       ';',
     ),
 
-    // Every kwarg is optional to the parser; the checker requires
-    // `bound` / `on_full` and pairs `watch_bound` with `on_watch_full`.
-    // Policy values stay identifiers, as `on_full` on a topic does —
-    // the compiler owns the legal set (`refuse`, `drop_old` /
-    // `drop_new`, `refuse` / `drop`).
-    api_kwarg: $ => choice(
-      seq(
-        field('key', choice('bound', 'watch_bound')),
-        ':',
-        field('value', $.integer_literal),
-      ),
-      seq(
-        field('key', choice('on_full', 'on_watch_full', 'on_unauthorized')),
-        ':',
-        field('value', $.identifier),
-      ),
-      // GH #1109: the membership source — a locus literal or one of
-      // main's params, evaluated as a param default.
-      seq(field('key', 'roles'), ':', field('value', $._expression)),
-    ),
-
-    // GH #1135: the binding's HTTP transport, one POST per request.
-    api_http: $ => seq(
-      'http',
-      '(',
-      field('host', $._expression),
-      ',',
-      field('port', $._expression),
-      optional(seq(',', 'principals', ':', field('principals', $._expression))),
-      optional(','),
-      ')',
-    ),
-
-    // GH #1137: params of main whose locus another seed declared,
-    // put on the surface beside the seed's own.
-    api_serve: $ => seq(
-      'serve',
-      ':',
-      '[',
-      optional(seq(
-        field('param', $.identifier),
-        repeat(seq(',', field('param', $.identifier))),
-        optional(','),
-      )),
-      ']',
+    _hub_clause: $ => choice(
+      $.requires_clause,
+      seq('bound', ':', field('bound', $.integer_literal)),
+      seq('on_full', ':', field('on_full', $.identifier)),
     ),
 
     // F.36 Slice 2 (2026-05-28): `codec(JsonCodec { })` — pluggable
@@ -1146,11 +1327,8 @@ module.exports = grammar({
       ),
     ),
 
-    // GH #1109: `@gated(role: R)` goes on an `expose` only — a `consume`
-    // is the parent's read of its child, never a caller's, and hale's
-    // parser refuses the pair.
     contract_member: $ => seq(
-      choice(seq(optional($.gated_annotation), 'expose'), 'consume'),
+      choice('expose', 'consume'),
       choice(
         seq(field('name', $.identifier), ':', field('type', $._type_expr), ';'),
         seq('inferred', ';'),
@@ -1203,11 +1381,7 @@ module.exports = grammar({
       )),
     ),
 
-    // GH #1109: a `publish` may carry `@gated(role: R)` — the role an
-    // external watcher of the stream must hold. A subscription's gate
-    // goes on the handler fn the `subscribe` names, not on the line.
     bus_publish: $ => seq(
-      optional($.gated_annotation),
       'publish',
       field('subject', $._bus_subject),
       optional(seq('of', 'type', field('type', $._type_expr))),
@@ -1234,6 +1408,12 @@ module.exports = grammar({
       'of',
       field('cell_type', $._type_expr),
       optional(seq('indexed_by', field('indexed_by', $.identifier))),
+      // `heap jobs of Job ordered_by min priority;` on a `@form(heap)`.
+      optional(seq(
+        'ordered_by',
+        field('order', choice('min', 'max')),
+        field('ordered_by', $.identifier),
+      )),
       optional(seq('as_parent_for', field('as_parent_for', $.identifier))),
       ';',
     ),
@@ -1242,8 +1422,9 @@ module.exports = grammar({
     // § 6. Lifecycle blocks
     // ===========================================================
 
+    // A hook takes one decorator: `@unbounded` or `@bounded_by(<name>)`.
     lifecycle_decl: $ => seq(
-      optional($.unbounded_annotation),
+      optional(choice($.unbounded_annotation, $.bounded_by_annotation)),
       field('kind', $._lifecycle_keyword),
       optional(seq('(', optional($._param_list), ')')),
       optional(seq('->', field('return_type', $._type_expr))),
@@ -1267,6 +1448,7 @@ module.exports = grammar({
     // ===========================================================
 
     mode_decl: $ => seq(
+      optional(choice($.unbounded_annotation, $.bounded_by_annotation)),
       'mode',
       field('name', $._mode_name),
       optional(seq('(', optional($._param_list), ')')),
@@ -1329,36 +1511,49 @@ module.exports = grammar({
     ),
 
     // ===========================================================
-    // § 10. Perspective declaration
-    // ===========================================================
-
-    perspective_decl: $ => seq(
-      'perspective',
-      field('name', $.identifier),
-      optional($.generic_params),
-      '{',
-      repeat($._perspective_member),
-      '}',
-    ),
-
-    _perspective_member: $ => choice(
-      $.params_block,
-      seq('stable_when', $.block),
-      seq('serialize_as', $._type_expr, ';'),
-      // The perspective CONTRACT: bodyless method signatures (the
-      // stable ABI a holder programs against, like an interface),
-      // plus optional default-bodied methods and a bus surface
-      // (Phase 2c bus contract).
-      $.interface_method_sig,
-      $.function_decl,
-      $.bus_block,
-    ),
-
-    // ===========================================================
     // § 11. Type declarations
     // ===========================================================
 
-    type_decl: $ => choice(
+    // Annotations that precede a `type` declaration. Which form each
+    // takes (`@positional` and `@display` a record, `@wire_case` an
+    // enum) and how they stack is the checker's and hale's parser's;
+    // the editor grammar takes any run of them.
+    type_annotations: $ => repeat1(choice(
+      $.positional_annotation,
+      $.wire_case_annotation,
+      $.display_annotation,
+    )),
+
+    // `@positional type Candle { … }` — the JSON codecs carry the record
+    // as an array of its fields in declaration order.
+    positional_annotation: $ => seq('@', 'positional'),
+
+    // RFC #1995 E1b: `@wire_case(snake)` spells every variant of an enum
+    // in one case on the wire. The case words are not keywords.
+    wire_case_annotation: $ => seq(
+      '@',
+      'wire_case',
+      '(',
+      field('case', $.identifier),
+      ')',
+    ),
+
+    // RFC #2035 (F.54): `@display("{name} at {px:?}")` — how a record's
+    // values (or, before a variant, that variant) render as text.
+    display_annotation: $ => seq(
+      '@',
+      'display',
+      '(',
+      field('template', $.string_literal),
+      ')',
+    ),
+
+    type_decl: $ => seq(
+      optional($.type_annotations),
+      $._type_decl_body,
+    ),
+
+    _type_decl_body: $ => choice(
       // type T = type_expr;
       seq('type', field('name', $.identifier), optional($.generic_params),
           '=', field('aliased', $._type_expr), ';'),
@@ -1373,6 +1568,12 @@ module.exports = grammar({
       // GH #1076: a scalar of the unit dialect — a quantity, a point,
       // an identity or a range. No generic params.
       seq('type', field('name', $.identifier), '=', $._scalar_body),
+      // GH #1530 step 1: a set type, `type Item = Book | Film | Song;` —
+      // two or more named types, each its own discriminant.
+      seq('type', field('name', $.identifier), '=',
+          field('member', $.qualified_name),
+          repeat1(seq('|', field('member', $.qualified_name))),
+          ';'),
     ),
 
     // `[quantity | point | distinct] BASE [in DENOMINATION] [{ CLAUSE; … }]`
@@ -1459,8 +1660,20 @@ module.exports = grammar({
 
     struct_field: $ => seq(
       field('name', $.identifier),
+      // GH #1951 item 3 (F.52): `x?: T` is an optional field, with a
+      // synthesized presence flag; `clearable` after its type adds a
+      // clear flag.
+      optional(alias('?', $.optional_marker)),
       ':',
       field('type', $._type_expr),
+      optional('clearable'),
+      // A wire map: `checks: bounded[Check; 3] indexed_by name;`, and
+      // a map of values with `-> <field>`.
+      optional(seq(
+        'indexed_by',
+        field('indexed_by', $.identifier),
+        optional(seq('->', field('value_field', $.identifier))),
+      )),
       optional(seq('=', field('default', $._expression))),
       // Go-style metadata tag — a backtick raw string. Shares the
       // backtick token with time literals (which only appear in
@@ -1470,9 +1683,18 @@ module.exports = grammar({
     ),
 
     enum_variant: $ => seq(
+      // F.54: a variant's own `@display("…")` template.
+      optional($.display_annotation),
+      // `@not_found Missing`: the variant's error class.
+      optional($.error_class_annotation),
       field('name', $.identifier),
       optional(seq('(', $._type_expr, repeat(seq(',', $._type_expr)), ')')),
+      // GH #1951 item 5: one metadata tag after the values, as a field
+      // takes — ``Sell `json:"sell"` ``, ``Other(String) `json:",other"` ``.
+      optional(field('tag', $.time_literal)),
     ),
+
+    error_class_annotation: $ => seq('@', field('class', $.identifier)),
 
     generic_params: $ => seq(
       '<',
@@ -1501,7 +1723,6 @@ module.exports = grammar({
       $.primitive_type,
       $.named_type,
       $.projection_type,
-      $.perspective_type,
       $.array_type,
       $.bounded_type,
       $.tuple_type,
@@ -1520,27 +1741,22 @@ module.exports = grammar({
     primitive_type: $ => choice(
       'Int', 'Uint', 'Float', 'Decimal', 'String', 'Bool',
       'Time', 'Duration', 'Bytes',
-      'BytesView', 'StringView',
+      'BytesView', 'StringView', 'BytesMut',
+      // GH #1934: the 256-bit integers.
+      'U256', 'I256',
+      // `Decimal<S>`: the scale, 0..=18, is part of the type.
+      seq('Decimal', '<', field('scale', $.integer_literal), '>'),
     ),
 
     named_type: $ => seq($.qualified_name, optional($.generic_args)),
 
+    // The projection-class words are contextual: in type position they
+    // are the projection type when a `<` follows — `rich<Sample>`.
     projection_type: $ => seq(
-      choice('Rich', 'Chunked', 'Recognition'),
+      choice('rich', 'chunked', 'recognition'),
       '<',
       $._type_expr,
       '>',
-    ),
-
-    // Perspectives Phase 2a: `perspective(P)` — a live-rebindable
-    // handle to the contract P, dispatched through a program-global
-    // slot. Used as a param field type on a holder locus. GH #724: P
-    // may be an imported contract, `perspective(lib::Routing)`.
-    perspective_type: $ => seq(
-      'perspective',
-      '(',
-      field('contract', $.qualified_name),
-      ')',
     ),
 
     array_type: $ => seq(
@@ -1591,11 +1807,11 @@ module.exports = grammar({
     // § 13. Const and function decls
     // ===========================================================
 
+    // The type may be left out when the initializer is a literal.
     const_decl: $ => seq(
       'const',
       field('name', $.identifier),
-      ':',
-      field('type', $._type_expr),
+      optional(seq(':', field('type', $._type_expr))),
       '=',
       field('value', $._expression),
       ';',
@@ -1651,22 +1867,45 @@ module.exports = grammar({
       $.no_effect_annotation,
       $.no_panic_annotation,
       $.deterministic_annotation,
-      $.gated_annotation,
+      $.bounded_by_annotation,
+      $.rpc_annotation,
+      $.raise_annotation,
+      $.idempotent_annotation,
     )),
 
-    // GH #1109: `@gated(role: R)` — the role a caller through the api
-    // binding must hold. On a subscribed handler (here, as a fn
-    // decorator), an `expose` member or a `publish` member; on any
-    // other fn the checker refuses it, the parser does not.
-    gated_annotation: $ => seq(
+    // GH #1530 step 4: on a `@repo` locus's write, whether a retry is
+    // safe — `@idempotent` / `@not_idempotent`.
+    idempotent_annotation: $ => seq('@', choice('idempotent', 'not_idempotent')),
+
+    // GH #1490: `@bounded_by(<name>)` stands where `@unbounded` stands
+    // and names the input that bounds the growth — one identifier or a
+    // dotted name, kept as written (`@bounded_by(self.open_requests)`).
+    bounded_by_annotation: $ => seq(
       '@',
-      'gated',
+      'bounded_by',
       '(',
-      'role',
-      ':',
-      field('role', $.identifier),
+      field('bound', $.bound_path),
       ')',
     ),
+
+    bound_path: $ => seq(
+      choice($.identifier, 'self'),
+      repeat(seq('.', $.identifier)),
+    ),
+
+    // GH #1417: `@rpc` / `@rpc(requires: [clerk])` on a locus fn — the
+    // row it contributes to its seed's default surface. (`@gated(role:
+    // R)`, GH #1109, is retired: a role requirement is a row's
+    // `requires`.)
+    rpc_annotation: $ => seq(
+      '@',
+      'rpc',
+      optional(seq('(', $.requires_clause, ')')),
+    ),
+
+    // GH #1951 item 2: `@raise fn conv(e: P) -> E` — the conversion an
+    // `or raise` applies from the parameter's type to the result's.
+    raise_annotation: $ => seq('@', 'raise'),
 
     // #265 / #345: `@effects(<clause>: {A, B})`. Clause names are
     // bare idents rather than a fixed choice — `none` / `publish` /
@@ -1795,7 +2034,6 @@ module.exports = grammar({
       $.continue_stmt,
       $.yield_stmt,
       $.terminate_stmt,
-      $.reperspective_stmt,
       $.recovery_stmt,
       $.violate_stmt,
       $.fail_stmt,
@@ -1810,34 +2048,44 @@ module.exports = grammar({
     // lifecycle from within a handler/run body.
     terminate_stmt: $ => seq('terminate', ';'),
 
-    // Perspectives Phase 2b (2026-06): `reperspective self.slot
-    // as NewImpl;` — the live redeploy. Swaps the implementation
-    // behind a perspective slot at pointer-flip cost. GH #724: the
-    // impl may be an imported locus, `as lib::Double`.
-    reperspective_stmt: $ => seq(
-      'reperspective',
-      'self',
-      '.',
-      field('slot', $.identifier),
-      'as',
-      field('impl', $.qualified_name),
-      ';',
-    ),
-
+    // GH #1995 E3: a `let` may bind a pattern, and may end in `else {
+    // … }` — `let Side::Limit(px) = side else { return 0; };` — whose
+    // block must leave. A name or a tuple of names takes a type; a
+    // pattern does not.
     let_stmt: $ => seq(
       'let',
       optional('mut'),
       choice(
-        field('name', $.identifier),
-        // Tuple destructure: `let (q, r) = divmod(23, 4);`. Names
-        // only — hale's parse_let_stmt takes idents here, not
-        // nested patterns — with an optional trailing comma.
-        field('names', $.let_tuple_names),
+        seq(
+          choice(
+            field('name', $.identifier),
+            // Tuple destructure: `let (q, r) = divmod(23, 4);`, with an
+            // optional trailing comma.
+            field('names', $.let_tuple_names),
+          ),
+          optional(seq(':', field('type', $._type_expr))),
+        ),
+        field('pattern', $.let_pattern),
       ),
-      optional(seq(':', field('type', $._type_expr))),
       '=',
       field('value', $._expression),
+      optional(seq('else', field('else', $.block))),
       ';',
+    ),
+
+    // A pattern that is not a name or a tuple of names, with
+    // or-alternatives. The bare-name and tuple-of-names forms above win
+    // where both fit.
+    let_pattern: $ => prec.dynamic(-1, seq(
+      $._let_pattern_head,
+      repeat(seq('|', $._pattern)),
+    )),
+
+    // `let _ = e;` stays the name `_` it always parsed as.
+    _let_pattern_head: $ => choice(
+      $.literal_pattern,
+      $.constructor_pattern,
+      $.tuple_pattern,
     ),
 
     let_tuple_names: $ => seq(
@@ -1912,16 +2160,31 @@ module.exports = grammar({
 
     if_stmt: $ => prec.right(seq(
       'if',
-      field('condition', $._expression),
+      field('condition', $._if_head),
       field('then', $.block),
-      repeat(seq('else', 'if', $._expression, $.block)),
+      repeat(seq('else', 'if', $._if_head, $.block)),
       optional(seq('else', field('else', $.block))),
     )),
 
+    _if_head: $ => choice($._expression, $.let_condition),
+
+    // GH #1995 E3: `if let P = e { A } else { B }` — the match `match e {
+    // P -> { A }, _ -> { B } }`; P is any arm's pattern, or-alternatives
+    // included.
+    let_condition: $ => seq(
+      'let',
+      field('pattern', $._pattern),
+      repeat(seq('|', field('pattern', $._pattern))),
+      '=',
+      field('value', $._expression),
+    ),
+
     match_stmt: $ => seq('match', matchBody($)),
 
+    // GH #1995 E2: an or-pattern, `A | B -> …`, top level only.
     match_arm: $ => seq(
       field('pattern', $._pattern),
+      repeat(seq('|', field('pattern', $._pattern))),
       optional(seq('if', field('guard', $._expression))),
       '->',
       // A block body is an `_expression` (see there).
@@ -1947,7 +2210,12 @@ module.exports = grammar({
 
     literal_pattern: $ => choice(
       $.integer_literal,
+      seq('-', $.integer_literal),
       $.float_literal,
+      seq('-', $.float_literal),
+      $.decimal_literal,
+      $.quantity_literal,
+      $.byte_literal,
       $.string_literal,
       'true',
       'false',
@@ -1999,7 +2267,7 @@ module.exports = grammar({
     fail_stmt: $ => seq('fail', $._expression, ';'),
 
     recovery_stmt: $ => seq(
-      $._recovery_op,
+      field('op', alias($._recovery_op, $.recovery_op)),
       '(',
       optional($._argument_list),
       ')',
@@ -2007,15 +2275,6 @@ module.exports = grammar({
       ';',
     ),
 
-    _recovery_op: $ => choice(
-      'restart',
-      'restart_in_place',
-      'drain',
-      'dissolve',
-      'quarantine',
-      'reorganize',
-      'bubble',
-    ),
 
     recovery_modifier: $ => choice(
       seq('for', $._expression),
@@ -2096,6 +2355,8 @@ module.exports = grammar({
         $.raise_disposition,
         $.discard_disposition,
         $.fail_disposition,
+        // GH #255: `or wait`, a delivery-mode modifier on a publish.
+        $.wait_disposition,
         // GH #1076: after a narrowing (`d.in(s) or floor`, `Session(n)
         // or clamp`, `spread / 2 or half_even`) a bare policy word says
         // what becomes of the remainder or of the value outside.
@@ -2109,6 +2370,7 @@ module.exports = grammar({
 
     raise_disposition:   $ => 'raise',
     discard_disposition: $ => 'discard',
+    wait_disposition:    $ => 'wait',
     fail_disposition:    $ => seq('fail', $._expression),
 
     // The five roundings a ratio's narrowing takes and the two a
@@ -2190,9 +2452,18 @@ module.exports = grammar({
     index_expr: $ => prec(PREC.CALL, seq(
       field('object', $._expression),
       '[',
-      field('index', $._expression),
+      field('index', choice($._expression, $.open_range)),
       ']',
     )),
+
+    // GH #1995 S1: inside an index a range may leave a bound out —
+    // `s[lo..]`, `s[..hi]`, `s[..=hi]`, `s[..]`. Anywhere else a range
+    // takes both.
+    open_range: $ => choice(
+      seq(field('start', $._expression), field('op', '..')),
+      seq(field('op', choice('..', '..=')), field('end', $._expression)),
+      field('op', '..'),
+    ),
 
     path_expr: $ => prec(PREC.CALL, seq(
       field('object', $._expression),
@@ -2200,22 +2471,22 @@ module.exports = grammar({
       field('member', $._member_name),
     )),
 
-    // member_name admits framework-vocabulary keywords post-dot.
+    // member_name admits the hard declaration keywords that name fields
+    // of built-in values (`err.locus`, `x.type`). The framework
+    // vocabulary (`self.bulk()`, `err.closure`, `self.tier`) is
+    // contextual (F.43) and arrives as an identifier.
     _member_name: $ => choice(
       $.identifier,
       // Numeric tuple-field access: `pair.0`, `pair.1`. hale lexes
       // the digits as an IntLit and hands the digit string on as
       // the member name; the tree keeps it as the literal it lexed.
       $.integer_literal,
-      'bulk', 'harmonic', 'resolution',
-      'closure', 'locus', 'params', 'contract',
-      'bus', 'capacity', 'tier', 'projection',
-      'perspective', 'type',
+      alias(choice('locus', 'type'), $.identifier),
     ),
 
     if_expr: $ => prec.right(seq(
       'if',
-      field('condition', $._expression),
+      field('condition', $._if_head),
       field('then', $.block),
       'else',
       field('else', choice($.if_expr, $.block)),
@@ -2254,7 +2525,7 @@ module.exports = grammar({
     array_expr: $ => seq(
       '[',
       choice(
-        optional(seq($._expression, repeat(seq(',', $._expression)))),
+        optional(seq($._expression, repeat(seq(',', $._expression)), optional(','))),
         seq($._expression, ';', $.integer_literal),
       ),
       ']',
@@ -2277,9 +2548,38 @@ module.exports = grammar({
       field('value', $._expression),
     ),
 
+    // A trailing comma is accepted. `api::serve( … )` takes named
+    // arguments after its surface and transport (`as:`, `receivers:`,
+    // `bound:`, `on_full:`); hale admits them on that path only, and
+    // the editor grammar takes them on any call.
     _argument_list: $ => seq(
-      $._expression,
-      repeat(seq(',', $._expression)),
+      $._argument,
+      repeat(seq(',', $._argument)),
+      optional(','),
+    ),
+
+    _argument: $ => choice($._expression, $.named_argument),
+
+    named_argument: $ => seq(
+      field('name', choice($.identifier, alias('as', $.identifier))),
+      ':',
+      field('value', choice($._expression, $.receiver_map)),
+    ),
+
+    // `receivers: { Shop: self.shop, lib::Desk: self.desk }`.
+    // At least one entry: an empty `{ }` reads as the empty block.
+    receiver_map: $ => seq(
+      '{',
+      $.receiver_entry,
+      repeat(seq(',', $.receiver_entry)),
+      optional(','),
+      '}',
+    ),
+
+    receiver_entry: $ => seq(
+      field('locus', $.qualified_name),
+      ':',
+      field('value', $._expression),
     ),
 
     _identifier_list: $ => seq(
@@ -2300,6 +2600,7 @@ module.exports = grammar({
       $.string_literal,
       $.fstring_literal,
       $.bytes_literal,
+      $.byte_literal,
       $.quantity_literal,
       $.time_literal,
       $.boolean_literal,
@@ -2342,17 +2643,34 @@ module.exports = grammar({
     // consumes them atomically — otherwise `//` inside a URL
     // string is matched as a `line_comment` from `extras` and
     // the parse blows up.
-    string_literal: $ => token(choice(
-      // Triple-quoted multi-line: """...""".
-      seq('"""', repeat(choice(/[^"]/, /"[^"]/, /""[^"]/)), '"""'),
-      // Raw string: r"..." — no escape processing.
-      seq('r"', repeat(/[^"]/), '"'),
-      // Regular string with escapes. hale's `lex_string` runs to the
-      // next unescaped `"`, newlines included: a string may span lines.
-      seq('"', repeat(choice(
-        /[^"\\]/,
-        seq('\\', /./),
-      )), '"'),
+    // A string: an escaped one, a raw one (`r#"…"#`) or a block string
+    // (a fenced, raw, multi-line literal). The raw and block forms come
+    // from src/scanner.c; all three are one `string_literal` node.
+    string_literal: $ => choice(
+      $._plain_string,
+      $._raw_string,
+      $._block_string,
+    ),
+
+    // String literals MUST be token() so the lexer consumes them
+    // atomically — otherwise `//` inside a URL string is matched as a
+    // `line_comment` from `extras` and the parse blows up. hale's
+    // `lex_string` runs to the next unescaped `"`, newlines included: a
+    // string may span lines.
+    _plain_string: $ => token(seq('"', repeat(choice(
+      /[^"\\]/,
+      seq('\\', /./),
+    )), '"')),
+
+    // GH #1995 S6: a byte literal, `b'/'`, is an `Int`: one printable
+    // ASCII character or an escape (`\n \t \r \\ \' \" \0 \xNN`).
+    byte_literal: $ => token(seq(
+      "b'",
+      choice(
+        /[^'\\\n]/,
+        seq('\\', choice(/[ntr0'"\\]/, /x[0-9a-fA-F]{2}/)),
+      ),
+      "'",
     )),
 
     // Same body as a string (`lex_bytes`), newlines included.
@@ -2391,8 +2709,10 @@ module.exports = grammar({
 
     block_comment: $ => token(seq('/*', /[^*]*\*+([^/*][^*]*\*+)*/, '/')),
 
+    // GH #1674: a `///` line (`////` is an ordinary comment, which the
+    // longer line_comment match takes).
     doc_comment: $ => token(choice(
-      seq('///', /[^\n]*/),
+      seq('///', optional(seq(/[^\/\n]/, /[^\n]*/))),
       seq('/**', /[^*]*\*+([^/*][^*]*\*+)*/, '/'),
     )),
   },

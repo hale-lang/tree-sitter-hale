@@ -3,6 +3,90 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-11-18 — Hale's surface as v0.36.0 ships it
+
+Synced against hale `main` at fd063cba6 with #2085 (`module { }`
+removed, F.57) merged onto it, read from `spec/grammar.ebnf`,
+`spec/tokens.md`, `spec/keywords.txt` and `crates/hale-syntax`'s
+parser where the ebnf is silent (an imported surface's signature
+rows, `@repo`, `@idempotent`). Before the sync 814 of the 1398 `.hl`
+files outside `target/` failed to parse (773 of the 1025 under the
+codegen examples, `tests/hale` and `dna/`); after it none do.
+
+Added:
+
+- **Surfaces (#1417, #1530)** — `api_decl` (`name`, an `api_source`
+  for `from openapi "…"`, a `requires_clause`), `rpc_row` (a
+  `rpc_handler`, `Locus::fn` or `lib::Locus::fn`, or a signature row
+  `name(Req) -> Resp wire: "…"`), `route_clause` (`at "GET /p"
+  status: 200`); `@rpc` / `@rpc(requires: [R])` on a fn; a hub
+  binding, `hub_entry` (`Fills: self.hub requires: [r], bound: 64,
+  on_full: drop_old;`); and the named arguments of `api::serve`
+  (`named_argument`, `receiver_map`), which the grammar takes on any
+  call, as it can't tell the path apart.
+- **Fleets and seams** — `fleet_decl` with `fleet_placement`
+  (`host("…")`, `replicas(N)`); `seam_decl` and `seam_hop`, closed and
+  callable, with `or end;` / `or violate C;`.
+- **Types** — the set form (`type Item = Book | Film;`, fields
+  `member`); `type_annotations` before a `type`: `@positional`,
+  `@wire_case(case)`, `@display("…")`; on a variant a `@display`, an
+  error class (`@not_found Missing`) and a `json:` tag; on a field the
+  optional `?` (`optional_marker`), `clearable` and `indexed_by name [->
+  field]`; `Decimal<S>`, `U256`, `I256`, `BytesMut` as primitives; the
+  projection types are spelled `rich<T>` / `chunked<T>` /
+  `recognition<T>`, as hale's parser reads them.
+- **Statements and expressions** — or-patterns in a match arm and in
+  `if let` / `let`; `let_condition` (`if let P = e`, in `if_stmt` and
+  `if_expr`); `let_pattern` and `let … else { … };`; `open_range` in an
+  index (`s[a..]`, `s[..b]`, `s[..=b]`, `s[..]`); decimal, quantity,
+  byte and negative literal patterns; trailing commas in call
+  arguments and array literals; `const X = 3;` with no type; `or wait`.
+- **Literals** — `byte_literal` (`b'/'`, `b'\x7f'`); raw strings with
+  `#` fences and block strings with fences of three or more `"`, both
+  from the scanner and both a `string_literal`; a `///` line is a doc
+  comment and `////` an ordinary one.
+- **Claims and the rest** — `avoiding std::log::*`; `route_form`
+  (`cover keys(topic T in -5..=10): delivered_to(exactly_one G)`);
+  `require no_silent_loss(…)` and `require separate_domains(…)`; an
+  import list (`import "p" as a { Row, show as display };`); `role R`
+  as a group member and a qualified `role_ref` in `includes`;
+  `@bounded_by(<name>)` on a fn, a hook or a mode; `@unbounded` on a
+  mode; `@raise`, `@repo(T)`, `@idempotent` / `@not_idempotent`;
+  `ordered_by min|max <field>` on a capacity slot.
+
+Removed, with their corpus cases rewritten to show the word is now a
+name:
+
+- **Perspectives (F.55)** — `perspective_decl`, `serves_clause`,
+  `perspective_type`, `reperspective_stmt`, `stable_when`,
+  `serialize_as`.
+- **`module { }` (F.57)** — `module_decl`; `module` is an identifier.
+- **The F.56 words** — `schedule` (and `schedule_class`), and the
+  retired api binding with its `http`, `principals`, `roles` and
+  `serve` (`api_binding`, `api_kwarg`, `api_http`, `api_serve`);
+  `@gated(role: …)` (`gated_annotation`), refused by hale since R4.
+- **`drain` / `dissolve` as recovery ops** — they are lifecycle hooks
+  only.
+- `trait`, `impl`, `async`, `await`, `macro` and `export` (F.47) were
+  never literal tokens here; `@export` stays an annotation.
+
+Changed trees:
+
+- A recovery statement's word is a `recovery_op` node (field `op`)
+  from the scanner, which hands it over only when a `(` follows: as a
+  literal token the word was taken wherever a statement may start, so
+  `restart = true;` was a parse error.
+- `string_literal` is a choice of three token rules; the node and its
+  name are unchanged.
+- A member name after `.` that is a framework word (`self.bulk()`,
+  `err.closure`, `self.tier`) is an `identifier` now, as it is in hale
+  (F.43); `err.locus` / `x.type` alias the keyword to `identifier`.
+
+Validated: `tree-sitter generate --abi 14` with CLI 0.26.9 (the
+committed tables) and with 0.22.6 (what CI runs); 83/83 corpus tests;
+every `.hl` file of the hale tree above, 1398 of them, parses with no
+ERROR or MISSING node under both CLIs.
+
 ## 2026-10-07 — a unit name is @type.unit
 
 A unit is coloured as a kind of type, in the three highlighters alike

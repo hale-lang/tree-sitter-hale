@@ -455,26 +455,22 @@ fn wrap(unit: Int, point: Int) -> Int {
           right: (identifier))))))
 
 ==================
-Units and roles inside a module
+Units and roles at the top level; there is no module block (F.57)
 ==================
 
-module money {
-    unit cent;
-    unit USD = 100 cent;
-    role teller;
-}
+unit cent;
+unit USD = 100 cent;
+role teller;
 
 ---
 
 (source_file
-  (module_decl
+  (unit_decl
+    name: (identifier))
+  (unit_decl
     name: (identifier)
-    (unit_decl
-      name: (identifier))
-    (unit_decl
-      name: (identifier)
-      factor: (unit_factor
-        numerator: (integer_literal)
-        unit: (unit_name)))
-    (role_decl
-      name: (identifier))))
+    factor: (unit_factor
+      numerator: (integer_literal)
+      unit: (unit_name)))
+  (role_decl
+    name: (identifier)))

@@ -44,27 +44,32 @@ one tool: it's the shared substrate.
 
 ## Status
 
-v0 grammar mature, written against hale `main` of 2026-10-06
-(89d0e7920): the unit dialect (`unit` declarations, quantity /
-point / identity / range types, quantity literals, `.in(…)`, the
-`or` policies — GH #1076), roles and `@gated` (#1109), the api
-binding (#1106), and qualified binding / perspective names.
-Verified 2026-10-06 (tree-sitter 0.26.9, hale 89d0e7920): every
-`.hl` file in the hale repo outside `target/` parses, all 952 of
-them, with no ERROR or MISSING node, and 63/63 corpus tests pass —
-see [`STATUS.md`](./STATUS.md), 2026-10-06.
+Written against Hale's surface as v0.36.0 ships it (hale `main` at
+fd063cba6 with #2085, 2026-11-18): api surfaces and hubs, fleets,
+seams, set types, the record and enum codec annotations, or-patterns,
+`if let` / `let … else`, byte literals, open-ended slices, raw and
+block strings — and without the removed forms: perspectives (F.55),
+`module { }` (F.57), `@gated` and the `bindings { api: … }` entry.
+Verified 2026-11-18 (tree-sitter 0.26.9 and 0.22.6): every `.hl`
+file in the hale repo outside `target/` parses, all 1398 of them,
+with no ERROR or MISSING node, and 83/83 corpus tests pass — see
+[`STATUS.md`](./STATUS.md), 2026-11-18.
 [`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is empty.
 Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query
 API live (Parser / Tree / Node / Query). Three query files
 ship: highlights.scm, tags.scm, locals.scm.
 
-`src/scanner.c` (2026-10-06) lexes two tokens the DSL can't: a
-quantity literal's magnitude, whose end needs lookahead (`3d` is
-a Decimal, `3day` a quantity of days; `3e5` a Float, `2EUR` a
-quantity), and an f-string, whose `{…}` interpolations nest and
-may hold a quoted string (`f"t = {(1, "two")}"`), so its end
-needs a depth count. scanner.c for the trickiest contextual keywords
+`src/scanner.c` lexes the tokens the DSL can't: a quantity
+literal's magnitude, whose end needs lookahead (`3d` is a Decimal,
+`3day` a quantity of days; `3e5` a Float, `2EUR` a quantity); an
+f-string, whose `{…}` interpolations nest and may hold a quoted
+string (`f"t = {(1, "two")}"`), so its end needs a depth count; a
+raw string (`r#"…"#`) and a block string (a `"""` fence ending its
+line), whose ends are counts of `#` and of `"`; and a recovery
+primitive's word (`restart`, `bubble`, …), a keyword only when a
+`(` follows it at statement head (2026-11-18). scanner.c for the
+trickiest contextual keywords
 (`mode`, `captures`, `inline`, `fail`, `raise`, `with`,
 `fallible`) is still deferred until specific parse failures
 motivate it — the grammar treats them as keywords with
@@ -147,8 +152,10 @@ section numbering as closely as tree-sitter's DSL admits:
 
 1. Top level — `program`, `import_decl`, `top_decl` (incl.
    `role_decl` and `unit_decl` / `unit_factor`)
-2. Locus declaration — `locus_decl`, `locus_member`, and in
-   `bindings { }` the `api_binding`
+1b. Surfaces and fleets — `api_decl` (`rpc_row`, `route_clause`,
+   `requires_clause`) and `fleet_decl` (`fleet_placement`)
+2. Locus declaration — `locus_decl`, `locus_member` (`seam_decl`
+   among them), and in `bindings { }` the `hub_entry`
 3. Params — `params_block`, `param_decl`
 4. Contract — `contract_block`, `contract_member`
 5. Bus — `bus_block`, `bus_subscribe`, `bus_publish`
@@ -157,21 +164,23 @@ section numbering as closely as tree-sitter's DSL admits:
 8. Modes — `mode_decl`
 9. Failure handler — `failure_decl`
 10. Closures — `closure_decl`
-11. Perspectives — `perspective_decl`
-12. Types — `type_decl`, incl. the unit dialect's scalar form
-    (`scalar_kind`, `denomination`, `scalar_clauses`)
-13. Type expressions — `type_expr`
-14. Function decls — `function_decl`, `fallible_marker`, the
-    decorators (`gated_annotation` among them)
-15. Statements — `let_stmt`, `assign_stmt`, `send_stmt`,
+11. Types — `type_decl`, incl. the unit dialect's scalar form
+    (`scalar_kind`, `denomination`, `scalar_clauses`), the set form
+    and `type_annotations` (`@positional`, `@wire_case`, `@display`)
+12. Type expressions — `type_expr`
+13. Function decls — `function_decl`, `fallible_marker`, the
+    decorators (`rpc_annotation`, `bounded_by_annotation` among them)
+14. Statements — `let_stmt`, `assign_stmt`, `send_stmt`,
     `if_stmt`, `match_stmt`, `for_stmt`, `while_stmt`,
     `return_stmt`, `break_stmt`, `continue_stmt`,
     `yield_stmt`, `recovery_stmt`, `violate_stmt`,
-    `fail_stmt`, `expr_stmt`
-16. Expressions — precedence-ordered per
+    `fail_stmt`, `expr_stmt`; `let_pattern` / `let_condition` for
+    `let … else` and `if let`, or-patterns in `match_arm`
+15. Expressions — precedence-ordered per
     [`spec/precedence.md`](../../hale/spec/precedence.md),
     incl. `quantity_literal`, `conversion` (`x.in(u)`) and the
-    `or` disposition's `policy`
+    `or` disposition's `policy`, `open_range` in an index and
+    `named_argument` in a call
 
 ## Deferred to scanner.c
 

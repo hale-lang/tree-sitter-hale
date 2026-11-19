@@ -25,10 +25,10 @@
 (function_decl) @local.scope
 (ffi_function_decl) @local.scope
 
-; Locus / interface / perspective / topic bodies — own scope.
+; Locus / interface bodies — own scope.
 (locus_decl) @local.scope
 (interface_decl) @local.scope
-(perspective_decl) @local.scope
+(fleet_decl) @local.scope
 
 ; Lifecycle method bodies — separate scope per lifecycle
 ; (params declared in birth() vs run() don't cross-leak).
@@ -46,6 +46,9 @@
 ; Match arms — pattern bindings in the arm are scoped to
 ; the arm body.
 (match_arm) @local.scope
+
+; A seam's callable form binds its parameter.
+(seam_decl) @local.scope
 
 ; ============================================================
 ; Definitions
@@ -69,9 +72,18 @@
 (for_stmt
   var: (identifier) @local.definition)
 
-; Pattern bindings in match arms.
+; Pattern bindings in match arms, `if let` and `let … else` (the
+; `let` form's names are in scope after the statement).
 (binding_pattern
   (identifier) @local.definition)
+
+; Tuple destructure: `let (q, r) = …`.
+(let_tuple_names
+  (identifier) @local.definition)
+
+; A seam's parameter.
+(seam_decl
+  param: (identifier) @local.definition)
 
 ; Closure captures clause — identifiers appear directly as
 ; children since _identifier_list is a hidden rule.
