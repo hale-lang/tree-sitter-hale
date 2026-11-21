@@ -3,6 +3,40 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-11-21 — Hale's surface as v0.37.0 ships it
+
+Synced against hale's `v0.37.0` tag (613e55fbd), read from
+`spec/grammar.ebnf` and `spec/decisions.md` F.58 / F.59.
+
+Added:
+
+- **`.Variant` patterns (F.58, hale #2124)** — `dot_variant_pattern`
+  (field `variant`, then an optional parenthesised pattern list):
+  `.Buy`, `.Other(raw)`, `.Some(.Result(n))`. It is a `_pattern`, so it
+  is taken in a match arm, an or-pattern's alternative, `if let`, inside
+  a tuple pattern and a variant's values; and a `_let_pattern_head`, so
+  `let .M(n) = m;` and `let .Result(i) = o else { … };` parse. The name
+  is an immediate token: the dot is written against it, and `. Buy` is
+  an error, as in hale's parser.
+- **Receiver calls on text (F.59, hale #2126)** — no grammar change:
+  `raw.trim().lower()` is the `call_expr` over a `field_expr` it always
+  parsed as, and the method's name is `@function.method.call`. A
+  corpus case pins the tree.
+
+Queries: the variant a pattern names is `@constructor`, both a dotted
+`.Buy` and the last segment of `Side::Buy`, so the two spellings read
+alike in one match. Before this a constructor pattern's name had no
+capture.
+
+Validated: `tree-sitter generate --abi 14` with CLI 0.26.9 (the
+committed tables) and with 0.22.6 (what CI runs); 91/91 corpus tests
+under both. Every `.hl` file of hale's `v0.37.0` tree outside `target/`,
+1401 of them, parses with no ERROR or MISSING node under both CLIs
+(the codegen examples 101, `tests/hale` 260, `crates/hale-stdlib` 49,
+`dna/` 671, `iris/` 15 among them). The 0.1.0 grammar fails 2 of the
+1401, both `.Variant` users: `tests/hale/dot_variant_patterns_test.hl`
+and `tests/hale/dot_variant_import_lib/main.hl`.
+
 ## 2026-11-18 — Hale's surface as v0.36.0 ships it
 
 Synced against hale `main` at fd063cba6 with #2085 (`module { }`

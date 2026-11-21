@@ -1,0 +1,373 @@
+==================
+.Variant in match arms (GH #2069, F.58)
+==================
+
+fn side_name(s: Side, o: Outcome) -> String {
+    match o {
+        .Result(0) -> { },
+        .Result(n) if n > 10 -> { },
+        .Pending -> { },
+        _ -> { },
+    }
+    return match s {
+        .Buy -> "buy",
+        .Other(raw) -> raw,
+    };
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (match_stmt
+        scrutinee: (identifier)
+        (match_arm
+          pattern: (dot_variant_pattern
+            variant: (identifier)
+            (literal_pattern
+              (integer_literal)))
+          body: (block))
+        (match_arm
+          pattern: (dot_variant_pattern
+            variant: (identifier)
+            (binding_pattern
+              (identifier)))
+          guard: (binary_expr
+            left: (identifier)
+            right: (integer_literal))
+          body: (block))
+        (match_arm
+          pattern: (dot_variant_pattern
+            variant: (identifier))
+          body: (block))
+        (match_arm
+          pattern: (wildcard_pattern)
+          body: (block)))
+      (return_stmt
+        (match_expr
+          scrutinee: (identifier)
+          (match_arm
+            pattern: (dot_variant_pattern
+              variant: (identifier))
+            body: (string_literal))
+          (match_arm
+            pattern: (dot_variant_pattern
+              variant: (identifier)
+              (binding_pattern
+                (identifier)))
+            body: (identifier)))))))
+
+==================
+.Variant in or-patterns, mixed with E::Variant (GH #2069, F.58)
+==================
+
+fn problem(e: CtlError) -> String {
+    return match e {
+        .Invalid(p) | .NotFound(p) | CtlError::Conflict(p) -> p,
+        .NotReady(_) -> "not ready",
+    };
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (return_stmt
+        (match_expr
+          scrutinee: (identifier)
+          (match_arm
+            pattern: (dot_variant_pattern
+              variant: (identifier)
+              (binding_pattern
+                (identifier)))
+            pattern: (dot_variant_pattern
+              variant: (identifier)
+              (binding_pattern
+                (identifier)))
+            pattern: (constructor_pattern
+              (qualified_name
+                (identifier)
+                (identifier))
+              (binding_pattern
+                (identifier)))
+            body: (identifier))
+          (match_arm
+            pattern: (dot_variant_pattern
+              variant: (identifier)
+              (wildcard_pattern))
+            body: (string_literal)))))))
+
+==================
+.Variant in if let, statement and expression (GH #2069, F.58)
+==================
+
+fn classify(o: Outcome) -> Int {
+    if let .Result(n) = o { return n; } else if let .Refused(_) | .Pending = o { return 0; }
+    let i = if let .Result(n) = o { n } else { -1 };
+    return i;
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (if_stmt
+        condition: (let_condition
+          pattern: (dot_variant_pattern
+            variant: (identifier)
+            (binding_pattern
+              (identifier)))
+          value: (identifier))
+        then: (block
+          (return_stmt
+            (identifier)))
+        (let_condition
+          pattern: (dot_variant_pattern
+            variant: (identifier)
+            (wildcard_pattern))
+          pattern: (dot_variant_pattern
+            variant: (identifier))
+          value: (identifier))
+        (block
+          (return_stmt
+            (integer_literal))))
+      (let_stmt
+        name: (identifier)
+        value: (if_expr
+          condition: (let_condition
+            pattern: (dot_variant_pattern
+              variant: (identifier)
+              (binding_pattern
+                (identifier)))
+            value: (identifier))
+          then: (block
+            (identifier))
+          else: (block
+            (unary_expr
+              operand: (integer_literal)))))
+      (return_stmt
+        (identifier)))))
+
+==================
+.Variant in let ... else (GH #2069, F.58)
+==================
+
+fn head(o: Outcome, e: CtlError) -> Int {
+    let .Result(index) = o else { return -1; };
+    let .Invalid(p) | .NotFound(p) = e else { return 0; };
+    return index;
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        pattern: (let_pattern
+          (dot_variant_pattern
+            variant: (identifier)
+            (binding_pattern
+              (identifier))))
+        value: (identifier)
+        else: (block
+          (return_stmt
+            (unary_expr
+              operand: (integer_literal)))))
+      (let_stmt
+        pattern: (let_pattern
+          (dot_variant_pattern
+            variant: (identifier)
+            (binding_pattern
+              (identifier)))
+          (dot_variant_pattern
+            variant: (identifier)
+            (binding_pattern
+              (identifier))))
+        value: (identifier)
+        else: (block
+          (return_stmt
+            (integer_literal))))
+      (return_stmt
+        (identifier)))))
+
+==================
+.Variant in a pattern let (GH #2069, F.58)
+==================
+
+fn meters(m: Meters) -> Int {
+    let .M(n) = m;
+    return n;
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        pattern: (let_pattern
+          (dot_variant_pattern
+            variant: (identifier)
+            (binding_pattern
+              (identifier))))
+        value: (identifier))
+      (return_stmt
+        (identifier)))))
+
+==================
+.Variant nested in a tuple pattern and a variant's values (GH #2069, F.58)
+==================
+
+fn nested(v: Value, pair: Pair) -> Int {
+    match v {
+        .Some(.Result(n)) -> { },
+        Value::Some(.Pending) -> { },
+        .None -> { },
+    }
+    return match pair {
+        (.Buy, .Sell(q)) -> q,
+        _ -> 0,
+    };
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (match_stmt
+        scrutinee: (identifier)
+        (match_arm
+          pattern: (dot_variant_pattern
+            variant: (identifier)
+            (dot_variant_pattern
+              variant: (identifier)
+              (binding_pattern
+                (identifier))))
+          body: (block))
+        (match_arm
+          pattern: (constructor_pattern
+            (qualified_name
+              (identifier)
+              (identifier))
+            (dot_variant_pattern
+              variant: (identifier)))
+          body: (block))
+        (match_arm
+          pattern: (dot_variant_pattern
+            variant: (identifier))
+          body: (block)))
+      (return_stmt
+        (match_expr
+          scrutinee: (identifier)
+          (match_arm
+            pattern: (tuple_pattern
+              (dot_variant_pattern
+                variant: (identifier))
+              (dot_variant_pattern
+                variant: (identifier)
+                (binding_pattern
+                  (identifier))))
+            body: (identifier))
+          (match_arm
+            pattern: (wildcard_pattern)
+            body: (integer_literal)))))))
+
+==================
+.Variant takes no space after the dot (GH #2069, F.58)
+:error
+==================
+
+fn f(s: Side) -> Int {
+    return match s { . Buy -> 1 };
+}
+
+---
+
+==================
+Receiver calls on text are ordinary method calls (GH #2068, F.59)
+==================
+
+fn norm(raw: String) -> String {
+    return raw.trim().lower();
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (return_stmt
+        (call_expr
+          callee: (field_expr
+            object: (call_expr
+              callee: (field_expr
+                object: (identifier)
+                member: (identifier)))
+            member: (identifier)))))))

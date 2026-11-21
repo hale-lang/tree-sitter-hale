@@ -2085,6 +2085,7 @@ module.exports = grammar({
     _let_pattern_head: $ => choice(
       $.literal_pattern,
       $.constructor_pattern,
+      $.dot_variant_pattern,
       $.tuple_pattern,
     ),
 
@@ -2205,6 +2206,7 @@ module.exports = grammar({
       $.wildcard_pattern,
       $.binding_pattern,
       $.constructor_pattern,
+      $.dot_variant_pattern,
       $.tuple_pattern,
     ),
 
@@ -2228,6 +2230,16 @@ module.exports = grammar({
 
     constructor_pattern: $ => seq(
       $.qualified_name,
+      optional(seq('(', $._pattern_list, ')')),
+    ),
+
+    // GH #2069 (F.58): `.Variant`, `.Variant(p, …)`, a variant of the
+    // matched value's enum, which the checker names. The dot is written
+    // against the name (`. Buy` is a parse error in hale), so the name is
+    // an immediate token. Patterns only: `.V` is not an expression.
+    dot_variant_pattern: $ => seq(
+      '.',
+      field('variant', alias(token.immediate(/[a-zA-Z_][a-zA-Z0-9_]*/), $.identifier)),
       optional(seq('(', $._pattern_list, ')')),
     ),
 

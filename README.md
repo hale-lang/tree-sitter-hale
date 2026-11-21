@@ -44,16 +44,16 @@ one tool: it's the shared substrate.
 
 ## Status
 
-Written against Hale's surface as v0.36.0 ships it (hale `main` at
-fd063cba6 with #2085, 2026-11-18): api surfaces and hubs, fleets,
-seams, set types, the record and enum codec annotations, or-patterns,
-`if let` / `let … else`, byte literals, open-ended slices, raw and
-block strings — and without the removed forms: perspectives (F.55),
-`module { }` (F.57), `@gated` and the `bindings { api: … }` entry.
-Verified 2026-11-18 (tree-sitter 0.26.9 and 0.22.6): every `.hl`
-file in the hale repo outside `target/` parses, all 1398 of them,
-with no ERROR or MISSING node, and 83/83 corpus tests pass — see
-[`STATUS.md`](./STATUS.md), 2026-11-18.
+Written against Hale's surface as v0.37.0 ships it (the `v0.37.0`
+tag, 613e55fbd, 2026-11-21): `.Variant` patterns (F.58), api surfaces
+and hubs, fleets, seams, set types, the record and enum codec
+annotations, or-patterns, `if let` / `let … else`, byte literals,
+open-ended slices, raw and block strings — and without the removed
+forms: perspectives (F.55), `module { }` (F.57), `@gated` and the
+`bindings { api: … }` entry. Verified 2026-11-21 (tree-sitter 0.26.9
+and 0.22.6): every `.hl` file in the hale repo outside `target/`
+parses, all 1401 of them, with no ERROR or MISSING node, and 91/91
+corpus tests pass — see [`STATUS.md`](./STATUS.md), 2026-11-21.
 [`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is empty.
 Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query

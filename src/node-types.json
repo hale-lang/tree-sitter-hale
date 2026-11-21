@@ -3017,6 +3017,10 @@
           "named": true
         },
         {
+          "type": "dot_variant_pattern",
+          "named": true
+        },
+        {
           "type": "literal_pattern",
           "named": true
         },
@@ -3413,6 +3417,52 @@
       "types": [
         {
           "type": "identifier",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "dot_variant_pattern",
+    "named": true,
+    "fields": {
+      "variant": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "binding_pattern",
+          "named": true
+        },
+        {
+          "type": "constructor_pattern",
+          "named": true
+        },
+        {
+          "type": "dot_variant_pattern",
+          "named": true
+        },
+        {
+          "type": "literal_pattern",
+          "named": true
+        },
+        {
+          "type": "tuple_pattern",
+          "named": true
+        },
+        {
+          "type": "wildcard_pattern",
           "named": true
         }
       ]
@@ -6243,6 +6293,10 @@
             "named": true
           },
           {
+            "type": "dot_variant_pattern",
+            "named": true
+          },
+          {
             "type": "literal_pattern",
             "named": true
           },
@@ -6394,6 +6448,10 @@
         },
         {
           "type": "constructor_pattern",
+          "named": true
+        },
+        {
+          "type": "dot_variant_pattern",
           "named": true
         },
         {
@@ -7353,6 +7411,10 @@
           },
           {
             "type": "constructor_pattern",
+            "named": true
+          },
+          {
+            "type": "dot_variant_pattern",
             "named": true
           },
           {
@@ -12660,6 +12722,10 @@
         },
         {
           "type": "constructor_pattern",
+          "named": true
+        },
+        {
+          "type": "dot_variant_pattern",
           "named": true
         },
         {
