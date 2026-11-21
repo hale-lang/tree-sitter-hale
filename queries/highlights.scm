@@ -439,6 +439,12 @@
 
 (primitive_type) @type.builtin
 
+; A variant a pattern names: `Side::Buy(px)`'s last segment, and
+; `.Buy(px)` (GH #2069, F.58), which means the same variant of the
+; matched value's enum. Both read alike in one match.
+(constructor_pattern (qualified_name (identifier) @constructor .))
+(dot_variant_pattern variant: (identifier) @constructor)
+
 ; `bounded[T; N]` is a type constructor, not the `bounded(N)`
 ; topic clause and not the `@bounded` decorator — all three share
 ; the word, so this is scoped to the type node.
