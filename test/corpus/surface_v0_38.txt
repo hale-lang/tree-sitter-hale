@@ -1,0 +1,498 @@
+==================
+U64 and the fixed-width integers are builtin types (GH #2121, #2132; F.60, F.64)
+==================
+
+type Header {
+    version: U8;
+    flags: U16;
+    length: U32;
+    offset: I32;
+    delta: I16;
+    trim: I8;
+    hash: U64;
+}
+
+fn widened(x: U8, ys: bounded[I16; 8], zs: [U32; 4]) -> U64 {
+    let a: I8 = -128;
+    let b: Option<U16> = None;
+    return U64::from_int(0);
+}
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type)))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    (parameter
+      name: (identifier)
+      type: (bounded_type
+        (primitive_type)
+        capacity: (integer_literal)))
+    (parameter
+      name: (identifier)
+      type: (array_type
+        (primitive_type)
+        (integer_literal)))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        type: (primitive_type)
+        value: (unary_expr
+          operand: (integer_literal)))
+      (let_stmt
+        name: (identifier)
+        type: (named_type
+          (qualified_name
+            (identifier))
+          (generic_args
+            (primitive_type)))
+        value: (identifier))
+      (return_stmt
+        (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))
+          (integer_literal))))))
+
+==================
+Uint is no longer a builtin type: it names a user type (F.60)
+==================
+
+fn f(x: Uint) -> Int { 0 }
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (named_type
+        (qualified_name
+          (identifier))))
+    return_type: (primitive_type)
+    (block
+      (integer_literal))))
+
+==================
+A decimal literal past Int's max is one integer literal (F.60)
+==================
+
+const MAX: U64 = 18446744073709551615;
+
+fn f(x: U64) -> U64 {
+    let y = x + 9_223_372_036_854_775_808;
+    return y;
+}
+
+---
+
+(source_file
+  (const_decl
+    name: (identifier)
+    type: (primitive_type)
+    value: (integer_literal))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (binary_expr
+          left: (identifier)
+          right: (integer_literal)))
+      (return_stmt
+        (identifier)))))
+
+==================
+Conversions into and out of the new integers are calls (F.60, F.64)
+==================
+
+fn f(n: Int, w: U64) -> U32 {
+    let a = U64::from_int(n);
+    let b = U64::to_int(w) or 0;
+    let c: U8 = U8(n) or clamp;
+    let d = U8::wrapping_add(c, 1);
+    let e = U64::max();
+    let s = [U32(1), U32(2)].sum(U32(0));
+    return U32(c);
+}
+
+---
+
+(source_file
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))
+          (identifier)))
+      (let_stmt
+        name: (identifier)
+        value: (or_disposition_expr
+          expr: (call_expr
+            callee: (path_expr
+              object: (identifier)
+              member: (identifier))
+            (identifier))
+          disposition: (integer_literal)))
+      (let_stmt
+        name: (identifier)
+        type: (primitive_type)
+        value: (or_disposition_expr
+          expr: (call_expr
+            callee: (identifier)
+            (identifier))
+          disposition: (policy)))
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))
+          (identifier)
+          (integer_literal)))
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (path_expr
+            object: (identifier)
+            member: (identifier))))
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (field_expr
+            object: (array_expr
+              (call_expr
+                callee: (identifier)
+                (integer_literal))
+              (call_expr
+                callee: (identifier)
+                (integer_literal)))
+            member: (identifier))
+          (call_expr
+            callee: (identifier)
+            (integer_literal))))
+      (return_stmt
+        (call_expr
+          callee: (identifier)
+          (identifier))))))
+
+==================
+Units over any integer base (GH #2131, #2132; F.62)
+==================
+
+type Wei = quantity U64 in wei;
+type Fee = quantity U64 in gwei { round: half_even; }
+type Ticks = quantity U32 in tick;
+type Level = U8 { range: 0..100; }
+type Port = distinct U16;
+
+fn top() -> Wei {
+    return 18446744073709551615wei;
+}
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    denomination: (denomination
+      unit: (unit_name)))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    denomination: (denomination
+      unit: (unit_name))
+    clauses: (scalar_clauses
+      (round_clause
+        policy: (policy))))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type)
+    denomination: (denomination
+      unit: (unit_name)))
+  (type_decl
+    name: (identifier)
+    base: (primitive_type)
+    clauses: (scalar_clauses
+      (range_clause
+        range: (range_expr
+          start: (integer_literal)
+          end: (integer_literal)))))
+  (type_decl
+    name: (identifier)
+    kind: (scalar_kind)
+    base: (primitive_type))
+  (function_decl
+    name: (identifier)
+    return_type: (named_type
+      (qualified_name
+        (identifier)))
+    (block
+      (return_stmt
+        (quantity_literal
+          magnitude: (integer_literal)
+          unit: (unit_name))))))
+
+==================
+@vectorize on a fn and on a locus fn (GH #2134, F.63)
+==================
+
+@vectorize
+fn total(xs: bounded[Int; 1024]) -> Int {
+    let mut s = 0;
+    for x in xs {
+        s = s + x;
+    }
+    return s;
+}
+
+@vectorize(min_width: 16)
+fn bytes(xs: bounded[U8; 1024]) -> U8 {
+    return xs.map(it).sum(U8(0));
+}
+
+locus Acc {
+    params { k: Int = 0; }
+    @hot @vectorize
+    fn chained(xs: bounded[Int; 1024]) -> Int {
+        return xs.map(it + 1).sum(0);
+    }
+}
+
+---
+
+(source_file
+  (function_decl
+    (fn_decorators
+      (vectorize_annotation))
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (bounded_type
+        (primitive_type)
+        capacity: (integer_literal)))
+    return_type: (primitive_type)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (integer_literal))
+      (for_stmt
+        var: (identifier)
+        iter: (identifier)
+        body: (block
+          (assign_stmt
+            target: (lvalue
+              (identifier))
+            value: (binary_expr
+              left: (identifier)
+              right: (identifier)))))
+      (return_stmt
+        (identifier))))
+  (function_decl
+    (fn_decorators
+      (vectorize_annotation
+        min_width: (integer_literal)))
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (bounded_type
+        (primitive_type)
+        capacity: (integer_literal)))
+    return_type: (primitive_type)
+    (block
+      (return_stmt
+        (call_expr
+          callee: (field_expr
+            object: (call_expr
+              callee: (field_expr
+                object: (identifier)
+                member: (identifier))
+              (identifier))
+            member: (identifier))
+          (call_expr
+            callee: (identifier)
+            (integer_literal))))))
+  (locus_decl
+    name: (identifier)
+    (params_block
+      (param_decl
+        name: (identifier)
+        type: (primitive_type)
+        default: (integer_literal)))
+    (function_decl
+      (fn_decorators
+        (hot_annotation)
+        (vectorize_annotation))
+      name: (identifier)
+      (parameter
+        name: (identifier)
+        type: (bounded_type
+          (primitive_type)
+          capacity: (integer_literal)))
+      return_type: (primitive_type)
+      (block
+        (return_stmt
+          (call_expr
+            callee: (field_expr
+              object: (call_expr
+                callee: (field_expr
+                  object: (identifier)
+                  member: (identifier))
+                (binary_expr
+                  left: (identifier)
+                  right: (integer_literal)))
+              member: (identifier))
+            (integer_literal)))))))
+
+==================
+mode, bulk, harmonic and resolution are ordinary names (GH #2133, F.61)
+==================
+
+type Reading { mode: String; resolution: Int = 1; }
+
+fn harmonic(bulk: Int) -> Int { return bulk * 2; }
+
+locus Sensor {
+    params { mode: String = "idle"; samples: Int = 4; }
+    fn bulk() -> Int { return self.samples * 10; }
+    fn resolution() -> Int { return self.bulk() + 1; }
+}
+
+fn main() {
+    let mode = harmonic(3);
+    let s = Sensor { };
+    let n = s.resolution();
+}
+
+---
+
+(source_file
+  (type_decl
+    name: (identifier)
+    (struct_field
+      name: (identifier)
+      type: (primitive_type))
+    (struct_field
+      name: (identifier)
+      type: (primitive_type)
+      default: (integer_literal)))
+  (function_decl
+    name: (identifier)
+    (parameter
+      name: (identifier)
+      type: (primitive_type))
+    return_type: (primitive_type)
+    (block
+      (return_stmt
+        (binary_expr
+          left: (identifier)
+          right: (integer_literal)))))
+  (locus_decl
+    name: (identifier)
+    (params_block
+      (param_decl
+        name: (identifier)
+        type: (primitive_type)
+        default: (string_literal))
+      (param_decl
+        name: (identifier)
+        type: (primitive_type)
+        default: (integer_literal)))
+    (function_decl
+      name: (identifier)
+      return_type: (primitive_type)
+      (block
+        (return_stmt
+          (binary_expr
+            left: (field_expr
+              object: (self_expr)
+              member: (identifier))
+            right: (integer_literal)))))
+    (function_decl
+      name: (identifier)
+      return_type: (primitive_type)
+      (block
+        (return_stmt
+          (binary_expr
+            left: (call_expr
+              callee: (field_expr
+                object: (self_expr)
+                member: (identifier)))
+            right: (integer_literal))))))
+  (function_decl
+    name: (identifier)
+    (block
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (identifier)
+          (integer_literal)))
+      (let_stmt
+        name: (identifier)
+        value: (struct_literal
+          name: (qualified_name
+            (identifier))))
+      (let_stmt
+        name: (identifier)
+        value: (call_expr
+          callee: (field_expr
+            object: (identifier)
+            member: (identifier)))))))
+
+==================
+A locus mode is no longer a member (GH #2133, F.61)
+:error
+==================
+
+locus Sensor {
+    mode bulk() -> Int { return 1; }
+}
+
+---

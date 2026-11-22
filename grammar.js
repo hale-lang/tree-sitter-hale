@@ -751,7 +751,6 @@ module.exports = grammar({
       $.bus_block,
       $.capacity_block,
       $.lifecycle_decl,
-      $.mode_decl,
       $.failure_decl,
       $.closure_decl,
       $.function_decl,
@@ -1444,19 +1443,13 @@ module.exports = grammar({
     ),
 
     // ===========================================================
-    // § 7. Mode declarations
+    // § 7. Mode declarations (removed)
     // ===========================================================
 
-    mode_decl: $ => seq(
-      optional(choice($.unbounded_annotation, $.bounded_by_annotation)),
-      'mode',
-      field('name', $._mode_name),
-      optional(seq('(', optional($._param_list), ')')),
-      optional(seq('->', field('return_type', $._type_expr))),
-      $.block,
-    ),
-
-    _mode_name: $ => choice('bulk', 'harmonic', 'resolution'),
+    // F.61 (hale #2133): locus modes were removed in hale 0.38. A mode
+    // compiled as an ordinary method and is written as a `fn` member.
+    // `mode`, `bulk`, `harmonic` and `resolution` are ordinary
+    // identifiers everywhere, a locus method's name included.
 
     // ===========================================================
     // § 8. Failure handler
@@ -1739,11 +1732,15 @@ module.exports = grammar({
     unit_type: $ => seq('(', ')'),
 
     primitive_type: $ => choice(
-      'Int', 'Uint', 'Float', 'Decimal', 'String', 'Bool',
+      'Int', 'Float', 'Decimal', 'String', 'Bool',
       'Time', 'Duration', 'Bytes',
       'BytesView', 'StringView', 'BytesMut',
       // GH #1934: the 256-bit integers.
       'U256', 'I256',
+      // GH #2121 (F.60): the 64-bit unsigned integer, which replaces the
+      // reserved `Uint`. GH #2132 (F.64): the fixed-width integers.
+      'U64',
+      'I32', 'U32', 'I16', 'U16', 'I8', 'U8',
       // `Decimal<S>`: the scale, 0..=18, is part of the type.
       seq('Decimal', '<', field('scale', $.integer_literal), '>'),
     ),
@@ -1871,7 +1868,23 @@ module.exports = grammar({
       $.rpc_annotation,
       $.raise_annotation,
       $.idempotent_annotation,
+      $.vectorize_annotation,
     )),
+
+    // GH #2134 (F.63): `@vectorize` / `@vectorize(min_width: N)` — every
+    // innermost loop of the fn must vectorize on the build's target, at
+    // least N lanes wide when given. fn-only.
+    vectorize_annotation: $ => seq(
+      '@',
+      'vectorize',
+      optional(seq(
+        '(',
+        'min_width',
+        ':',
+        field('min_width', $.integer_literal),
+        ')',
+      )),
+    ),
 
     // GH #1530 step 4: on a `@repo` locus's write, whether a retry is
     // safe — `@idempotent` / `@not_idempotent`.
@@ -2485,7 +2498,7 @@ module.exports = grammar({
 
     // member_name admits the hard declaration keywords that name fields
     // of built-in values (`err.locus`, `x.type`). The framework
-    // vocabulary (`self.bulk()`, `err.closure`, `self.tier`) is
+    // vocabulary (`err.closure`, `self.tier`) is
     // contextual (F.43) and arrives as an identifier.
     _member_name: $ => choice(
       $.identifier,

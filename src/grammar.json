@@ -2723,10 +2723,6 @@
         },
         {
           "type": "SYMBOL",
-          "name": "mode_decl"
-        },
-        {
-          "type": "SYMBOL",
           "name": "failure_decl"
         },
         {
@@ -5962,123 +5958,6 @@
         }
       ]
     },
-    "mode_decl": {
-      "type": "SEQ",
-      "members": [
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "CHOICE",
-              "members": [
-                {
-                  "type": "SYMBOL",
-                  "name": "unbounded_annotation"
-                },
-                {
-                  "type": "SYMBOL",
-                  "name": "bounded_by_annotation"
-                }
-              ]
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
-          "type": "STRING",
-          "value": "mode"
-        },
-        {
-          "type": "FIELD",
-          "name": "name",
-          "content": {
-            "type": "SYMBOL",
-            "name": "_mode_name"
-          }
-        },
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SEQ",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "("
-                },
-                {
-                  "type": "CHOICE",
-                  "members": [
-                    {
-                      "type": "SYMBOL",
-                      "name": "_param_list"
-                    },
-                    {
-                      "type": "BLANK"
-                    }
-                  ]
-                },
-                {
-                  "type": "STRING",
-                  "value": ")"
-                }
-              ]
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
-          "type": "CHOICE",
-          "members": [
-            {
-              "type": "SEQ",
-              "members": [
-                {
-                  "type": "STRING",
-                  "value": "->"
-                },
-                {
-                  "type": "FIELD",
-                  "name": "return_type",
-                  "content": {
-                    "type": "SYMBOL",
-                    "name": "_type_expr"
-                  }
-                }
-              ]
-            },
-            {
-              "type": "BLANK"
-            }
-          ]
-        },
-        {
-          "type": "SYMBOL",
-          "name": "block"
-        }
-      ]
-    },
-    "_mode_name": {
-      "type": "CHOICE",
-      "members": [
-        {
-          "type": "STRING",
-          "value": "bulk"
-        },
-        {
-          "type": "STRING",
-          "value": "harmonic"
-        },
-        {
-          "type": "STRING",
-          "value": "resolution"
-        }
-      ]
-    },
     "failure_decl": {
       "type": "SEQ",
       "members": [
@@ -7547,10 +7426,6 @@
         },
         {
           "type": "STRING",
-          "value": "Uint"
-        },
-        {
-          "type": "STRING",
           "value": "Float"
         },
         {
@@ -7596,6 +7471,34 @@
         {
           "type": "STRING",
           "value": "I256"
+        },
+        {
+          "type": "STRING",
+          "value": "U64"
+        },
+        {
+          "type": "STRING",
+          "value": "I32"
+        },
+        {
+          "type": "STRING",
+          "value": "U32"
+        },
+        {
+          "type": "STRING",
+          "value": "I16"
+        },
+        {
+          "type": "STRING",
+          "value": "U16"
+        },
+        {
+          "type": "STRING",
+          "value": "I8"
+        },
+        {
+          "type": "STRING",
+          "value": "U8"
         },
         {
           "type": "SEQ",
@@ -8194,9 +8097,63 @@
           {
             "type": "SYMBOL",
             "name": "idempotent_annotation"
+          },
+          {
+            "type": "SYMBOL",
+            "name": "vectorize_annotation"
           }
         ]
       }
+    },
+    "vectorize_annotation": {
+      "type": "SEQ",
+      "members": [
+        {
+          "type": "STRING",
+          "value": "@"
+        },
+        {
+          "type": "STRING",
+          "value": "vectorize"
+        },
+        {
+          "type": "CHOICE",
+          "members": [
+            {
+              "type": "SEQ",
+              "members": [
+                {
+                  "type": "STRING",
+                  "value": "("
+                },
+                {
+                  "type": "STRING",
+                  "value": "min_width"
+                },
+                {
+                  "type": "STRING",
+                  "value": ":"
+                },
+                {
+                  "type": "FIELD",
+                  "name": "min_width",
+                  "content": {
+                    "type": "SYMBOL",
+                    "name": "integer_literal"
+                  }
+                },
+                {
+                  "type": "STRING",
+                  "value": ")"
+                }
+              ]
+            },
+            {
+              "type": "BLANK"
+            }
+          ]
+        }
+      ]
     },
     "idempotent_annotation": {
       "type": "SEQ",

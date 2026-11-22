@@ -154,7 +154,7 @@
   "topology"
 ] @keyword
 
-; Lifecycle + mode keywords
+; Lifecycle keywords
 [
   "birth"
   "accept"
@@ -163,10 +163,6 @@
   "drain"
   "dissolve"
   "on_failure"
-  "bulk"
-  "harmonic"
-  "resolution"
-  "mode"
   "birth_check"
 ] @keyword.function
 
@@ -337,6 +333,13 @@
 (hot_annotation
   "@" @attribute
   "hot" @attribute)
+
+; GH #2134 (F.63): `@vectorize` / `@vectorize(min_width: N)`.
+(vectorize_annotation
+  "@" @attribute
+  "vectorize" @attribute)
+(vectorize_annotation
+  "min_width" @variable.member)
 
 (no_panic_annotation
   "@" @attribute
