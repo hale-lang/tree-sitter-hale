@@ -4524,6 +4524,10 @@
         {
           "type": "unbounded_annotation",
           "named": true
+        },
+        {
+          "type": "vectorize_annotation",
+          "named": true
         }
       ]
     }
@@ -6984,10 +6988,6 @@
           "named": true
         },
         {
-          "type": "mode_decl",
-          "named": true
-        },
-        {
           "type": "params_block",
           "named": true
         },
@@ -7712,98 +7712,6 @@
         },
         {
           "type": "match_arm",
-          "named": true
-        }
-      ]
-    }
-  },
-  {
-    "type": "mode_decl",
-    "named": true,
-    "fields": {
-      "name": {
-        "multiple": false,
-        "required": true,
-        "types": [
-          {
-            "type": "bulk",
-            "named": false
-          },
-          {
-            "type": "harmonic",
-            "named": false
-          },
-          {
-            "type": "resolution",
-            "named": false
-          }
-        ]
-      },
-      "return_type": {
-        "multiple": true,
-        "required": false,
-        "types": [
-          {
-            "type": "(",
-            "named": false
-          },
-          {
-            "type": ")",
-            "named": false
-          },
-          {
-            "type": "array_type",
-            "named": true
-          },
-          {
-            "type": "bounded_type",
-            "named": true
-          },
-          {
-            "type": "function_type",
-            "named": true
-          },
-          {
-            "type": "named_type",
-            "named": true
-          },
-          {
-            "type": "primitive_type",
-            "named": true
-          },
-          {
-            "type": "projection_type",
-            "named": true
-          },
-          {
-            "type": "tuple_type",
-            "named": true
-          },
-          {
-            "type": "unit_type",
-            "named": true
-          }
-        ]
-      }
-    },
-    "children": {
-      "multiple": true,
-      "required": true,
-      "types": [
-        {
-          "type": "block",
-          "named": true
-        },
-        {
-          "type": "bounded_by_annotation",
-          "named": true
-        },
-        {
-          "type": "parameter",
-          "named": true
-        },
-        {
-          "type": "unbounded_annotation",
           "named": true
         }
       ]
@@ -13222,6 +13130,22 @@
     }
   },
   {
+    "type": "vectorize_annotation",
+    "named": true,
+    "fields": {
+      "min_width": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "integer_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
     "type": "violate_stmt",
     "named": true,
     "fields": {
@@ -13691,7 +13615,19 @@
     "named": false
   },
   {
+    "type": "I16",
+    "named": false
+  },
+  {
     "type": "I256",
+    "named": false
+  },
+  {
+    "type": "I32",
+    "named": false
+  },
+  {
+    "type": "I8",
     "named": false
   },
   {
@@ -13723,11 +13659,23 @@
     "named": false
   },
   {
+    "type": "U16",
+    "named": false
+  },
+  {
     "type": "U256",
     "named": false
   },
   {
-    "type": "Uint",
+    "type": "U32",
+    "named": false
+  },
+  {
+    "type": "U64",
+    "named": false
+  },
+  {
+    "type": "U8",
     "named": false
   },
   {
@@ -13837,10 +13785,6 @@
   },
   {
     "type": "buffer_size",
-    "named": false
-  },
-  {
-    "type": "bulk",
     "named": false
   },
   {
@@ -14129,10 +14073,6 @@
     "named": false
   },
   {
-    "type": "harmonic",
-    "named": false
-  },
-  {
     "type": "heap",
     "named": false
   },
@@ -14262,7 +14202,7 @@
     "named": false
   },
   {
-    "type": "mode",
+    "type": "min_width",
     "named": false
   },
   {
@@ -14454,10 +14394,6 @@
     "named": false
   },
   {
-    "type": "resolution",
-    "named": false
-  },
-  {
     "type": "return",
     "named": false
   },
@@ -14623,6 +14559,10 @@
   },
   {
     "type": "until",
+    "named": false
+  },
+  {
+    "type": "vectorize",
     "named": false
   },
   {

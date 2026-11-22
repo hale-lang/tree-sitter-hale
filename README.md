@@ -44,16 +44,18 @@ one tool: it's the shared substrate.
 
 ## Status
 
-Written against Hale's surface as v0.37.0 ships it (the `v0.37.0`
-tag, 613e55fbd, 2026-11-21): `.Variant` patterns (F.58), api surfaces
+Written against Hale's surface as v0.38.0 ships it (the `v0.38.0`
+tag, 75746408f, 2026-11-22): `U64` and the fixed-width integers (F.60,
+F.64), `@vectorize` (F.63), `.Variant` patterns (F.58), api surfaces
 and hubs, fleets, seams, set types, the record and enum codec
 annotations, or-patterns, `if let` / `let … else`, byte literals,
 open-ended slices, raw and block strings — and without the removed
-forms: perspectives (F.55), `module { }` (F.57), `@gated` and the
-`bindings { api: … }` entry. Verified 2026-11-21 (tree-sitter 0.26.9
-and 0.22.6): every `.hl` file in the hale repo outside `target/`
-parses, all 1401 of them, with no ERROR or MISSING node, and 91/91
-corpus tests pass — see [`STATUS.md`](./STATUS.md), 2026-11-21.
+forms: locus modes (F.61), perspectives (F.55), `module { }` (F.57),
+`@gated` and the `bindings { api: … }` entry. Verified 2026-11-22
+(tree-sitter 0.26.9 and 0.22.6): every `.hl` file in the hale repo
+outside `target/` parses, all 1427 of them, with no ERROR or MISSING
+node, and 99/99 corpus tests pass — see [`STATUS.md`](./STATUS.md),
+2026-11-22.
 [`known-gaps.txt`](./known-gaps.txt), the XFAIL list, is empty.
 Hale @ffi wrapper
 + glue.c verified end-to-end against libtree-sitter. Query
@@ -161,7 +163,7 @@ section numbering as closely as tree-sitter's DSL admits:
 5. Bus — `bus_block`, `bus_subscribe`, `bus_publish`
 6. Capacity — `capacity_block`, `capacity_slot`
 7. Lifecycle — `lifecycle_decl`
-8. Modes — `mode_decl`
+8. Modes — removed (F.61); `mode` and the mode words are identifiers
 9. Failure handler — `failure_decl`
 10. Closures — `closure_decl`
 11. Types — `type_decl`, incl. the unit dialect's scalar form
@@ -169,7 +171,8 @@ section numbering as closely as tree-sitter's DSL admits:
     and `type_annotations` (`@positional`, `@wire_case`, `@display`)
 12. Type expressions — `type_expr`
 13. Function decls — `function_decl`, `fallible_marker`, the
-    decorators (`rpc_annotation`, `bounded_by_annotation` among them)
+    decorators (`rpc_annotation`, `bounded_by_annotation`,
+    `vectorize_annotation` among them)
 14. Statements — `let_stmt`, `assign_stmt`, `send_stmt`,
     `if_stmt`, `match_stmt`, `for_stmt`, `while_stmt`,
     `return_stmt`, `break_stmt`, `continue_stmt`,

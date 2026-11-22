@@ -933,7 +933,7 @@ locus Orders {
     }
     @bounded_by(self.open_requests)
     run() { }
-    @unbounded mode bulk() { }
+    @unbounded fn bulk() { }
     @effects(is: { creates(Order) }) @idempotent
     fn create(o: Order) -> Order { o }
     @not_idempotent @bounded_by(record)
@@ -977,8 +977,10 @@ locus Orders {
         bound: (bound_path
           (identifier)))
       (block))
-    (mode_decl
-      (unbounded_annotation)
+    (function_decl
+      (fn_decorators
+        (unbounded_annotation))
+      name: (identifier)
       (block))
     (function_decl
       (fn_decorators

@@ -33,7 +33,6 @@
 ; Lifecycle method bodies — separate scope per lifecycle
 ; (params declared in birth() vs run() don't cross-leak).
 (lifecycle_decl) @local.scope
-(mode_decl) @local.scope
 (failure_decl) @local.scope
 
 ; Closure bodies — their own scope (captures: is the

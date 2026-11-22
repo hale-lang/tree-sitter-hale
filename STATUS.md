@@ -3,6 +3,60 @@
 Status as of the initial grammar.js + @ffi wrapper commit
 (2026-05-23).
 
+## 2026-11-22 — Hale's surface as v0.38.0 ships it
+
+Synced against hale's `v0.38.0` tag (75746408f), read from
+`spec/grammar.ebnf`, `spec/tokens.md` and `spec/decisions.md` F.60 to
+F.64.
+
+Added:
+
+- **`U64` and the fixed-width integers (F.60, F.64; hale #2121,
+  #2132)** — `U64`, `I32`, `U32`, `I16`, `U16`, `I8` and `U8` are
+  `primitive_type`s, beside `Int` and `U256`. In expression position
+  (`U64::from_int(n)`, `U8(n) or clamp`) they are the identifiers they
+  were, as `U256::f` and `Float(x)` already are. `Uint`, which hale
+  reserved and never gave a representation, is gone: it now reads as a
+  `named_type`, as any user type does. A decimal literal past `Int`'s
+  max (`18446744073709551615`) is one `integer_literal`, and a quantity
+  literal's magnitude of that size is too: the scanner reads digits
+  with no width.
+- **`@vectorize` (F.63, hale #2134)** — `vectorize_annotation`, a fn
+  decorator, with an optional `(min_width: N)` (field `min_width`). It
+  stacks with the other decorators on a free fn and on a locus fn.
+- **Units over any integer base (F.62, hale #2131)** — no grammar
+  change: `quantity U64 in wei`, `distinct U16` and `U8 { range: … }`
+  take the base as the `primitive_type` they already took.
+
+Removed:
+
+- **Locus modes (F.61, hale #2133)** — `mode_decl` is gone, and
+  `mode`, `bulk`, `harmonic` and `resolution` are no longer keywords.
+  `fn bulk()` on a locus, `self.bulk()`, a field or a local named
+  `mode` parse as the names they are; `mode bulk() { … }` at
+  locus-member position is now an ERROR, where hale reports its
+  migration error.
+
+Queries: the four mode words leave `@keyword.function`, and
+`mode_decl` leaves `locals.scm`. `@vectorize` is `@attribute`, and its
+`min_width` key `@variable.member`.
+
+Validated: `tree-sitter generate --abi 14` with CLI 0.26.9 (the
+committed tables) and `tree-sitter generate` with 0.22.6 (what CI
+runs); 99/99 corpus tests under both. Every `.hl` file of hale's
+`v0.38.0` tree outside `target/`, 1427 of them, parses with no ERROR
+or MISSING node under both CLIs, as it does under the 0.2.0 grammar:
+the 0.2.0 grammar has no failure here because `U64` and friends parse
+as named types and the new test programs write no `@vectorize`. In
+the 16 new integer and unit test programs (`fixed_int_*`, `u64_*`,
+`units_u64_*`, `units_fixed_int_test.hl`, `mode_is_a_name_test.hl`)
+the 0.2.0 grammar reads 147 type names as `named_type`, this one none.
+The `@vectorize` programs live in hale's Rust tests
+(`vectorize_assertion.rs`, `fixed_int_vectorize.rs`,
+`vectorize_check.rs`, `vectorize_build.rs`); the 18 extracted from
+them parse clean here, and the 0.2.0 grammar fails 17, every one that
+writes `@vectorize`.
+
 ## 2026-11-21 — Hale's surface as v0.37.0 ships it
 
 Synced against hale's `v0.37.0` tag (613e55fbd), read from
